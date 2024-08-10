@@ -186,7 +186,7 @@ def test_convert():
 
     sink = wds.ShardWriter(
         shard_filename,
-        maxcount=2048,
+        maxcount=512,
         maxsize=3e10,
         # maxsize=shard_size,
     )
@@ -208,9 +208,7 @@ def test_convert():
                 print(test_sharding_jit._cache_size())
                 save_image_torch(images, i)
 
-
-
-            def thread_write():
+            def thread_write(images,sink):
                 for img in images:
                     sink.write({
                         "__key__": "%010d" % i,
@@ -219,7 +217,7 @@ def test_convert():
                         # "json": label,
                     })
 
-            threading.Thread(target=thread_write,).start()
+            threading.Thread(target=thread_write, ).start()
 
 
 def show_image(img, i):
