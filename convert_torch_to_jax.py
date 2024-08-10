@@ -2,7 +2,7 @@ import flax
 
 
 def convert_torch_to_jax(state_dict):
-    print(state_dict.keys())
+    # print(state_dict.keys())
     params = {
         'pos_embed': state_dict['pos_embed'],
 
@@ -54,10 +54,8 @@ def convert_torch_to_jax(state_dict):
 
         layer_idx += 1
 
-
     params = {k: v.numpy() for k, v in params.items()}
 
     params = flax.traverse_util.unflatten_dict(params, '.')
-
 
     return params
