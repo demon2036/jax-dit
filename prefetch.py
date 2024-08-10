@@ -16,7 +16,8 @@ def convert_to_global_array(x, x_sharding):
 
     global_batch_shape_x = (b * jax.process_count(), *res)
 
-    s = sorted(x_sharding.addressable_devices, key=lambda x: (x.coords[1], x.coords[0]))
+    # s = sorted(x_sharding.addressable_devices, key=lambda x: (x.coords[1], x.coords[0]))
+    s = sorted(x_sharding.addressable_devices, key=lambda x:  x.coords[0])
 
     global_batch_array_x = jax.make_array_from_single_device_arrays(
         global_batch_shape_x, sharding=x_sharding,
