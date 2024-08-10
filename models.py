@@ -29,7 +29,7 @@ class DiTBase:
 
     learn_sigma: bool = True
 
-    dtype: Any = jnp.bfloat16
+    dtype: Any = jnp.float32
     precision: Any = jax.lax.Precision.DEFAULT
     use_fast_variance: bool = True
     condition: bool = True
