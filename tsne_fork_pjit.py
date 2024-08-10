@@ -75,34 +75,9 @@ def test_sharding(rng, params, vae_params, class_label: int, diffusion_sample, v
     image = jnp.clip(image, 0, 1)
     # image=jnp.array(image,dtype=jnp.uint8)
 
-    # image = einops.rearrange(image, 'b c h w->b h w c')
+    image = einops.rearrange(image, 'b c h w->b h w c')
 
     return rng, image
-
-
-def test_sharding2(rng, params, vae_params, class_label: int, diffusion_sample, vae, shape, cfg_scale: float = 1.5):
-    new_rng, local_rng, sample_rng = jax.random.split(rng, 3)
-
-    class_labels = jnp.ones((shape[0],), dtype=jnp.int32) * class_label
-    z = jax.random.normal(key=local_rng, shape=shape)
-    z = jnp.concat([z, z], axis=0)
-    y = jnp.array(class_labels)
-    y_null = jnp.array([1000] * shape[0])
-    y = jnp.concat([y, y_null], axis=0)
-    model_kwargs = dict(y=y, cfg_scale=cfg_scale)
-
-    latent = diffusion_sample.ddim_sample_loop(params, z.shape, z, clip_denoised=False, model_kwargs=model_kwargs,
-                                               key=sample_rng, eta=0.0)
-
-    latent, _ = jnp.split(latent, 2, axis=0)
-
-    latent = latent / 0.18215
-    image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
-    print(image.shape)
-    image = einops.rearrange(image, 'b c h w->b h w c')
-    # return
-
-    return new_rng, image
 
 
 def create_state():
@@ -234,67 +209,10 @@ def test_convert():
             for img in images:
                 sink.write({
                     "__key__": "%010d" % i,
-                    "jpg.pyd": np.array(img*255,dtype=np.uint8),
+                    "jpg.pyd": np.array(img * 255, dtype=np.uint8),
                     "cls": label,
                     # "json": label,
                 })
-
-
-def test_convert2():
-    # jax.distributed.initialize()
-    rng = jax.random.key(0)
-
-    class_label = 2
-
-    b, h, w, c = shape = 64, 32, 32, 4
-
-    # rng = jax.random.split(rng, num=jax.local_device_count())
-    # rng = jax.random.split(rng, num=jax.device_count())
-
-    model, converted_jax_params = create_state()
-    diffusion_sample = create_diffusion_sample(model=model, apply_fn=model.forward_with_cfg)
-
-    converted_jax_params = jax.tree_util.tree_map(jnp.asarray, converted_jax_params)
-
-    vae_path = 'stabilityai/sd-vae-ft-mse'
-    vae, vae_params = FlaxAutoencoderKL.from_pretrained(pretrained_model_name_or_path=vae_path, from_pt=True)
-
-    # vae_params = jax.device_put(vae_params, jax.local_devices()[0])
-
-    #     pass
-
-    vae_params = jax.tree_util.tree_map(lambda x: jnp.asarray(np.array(x)), vae_params)
-
-    print(converted_jax_params['x_embedder']['proj']['kernel'].devices())
-    print(vae_params['decoder']['conv_in']['bias'].devices())
-    print(type(converted_jax_params), type(vae_params))
-
-    # vae_params = FrozenDict(vae_params)
-
-    test_sharding_pmap = functools.partial(test_sharding2, shape=shape, diffusion_sample=diffusion_sample,
-                                           class_label=class_label, vae=vae)
-
-    test_sharding_pmap = jax.pmap(test_sharding_pmap)
-
-    converted_jax_params, vae_params = replicate(converted_jax_params), replicate(vae_params)
-    rng = shard_prng_key(rng)
-
-    for label in range(2, 1000):
-
-        for i in tqdm.tqdm(range(20)):
-
-            rng, images = test_sharding_pmap(rng, converted_jax_params, vae_params, )
-            b, *_ = rng.shape
-            per_process_batch = b // jax.process_count()
-            process_idx = jax.process_index()
-            local_rng = rng[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
-
-            if jax.process_index() == 0:
-                print(rng.shape, images.shape)
-                print(local_rng)
-                print(local_rng.shape)
-
-                # print(test_sharding_pmap._cache_size())
 
 
 def show_image(img, i):
@@ -309,10 +227,9 @@ def show_image(img, i):
 
 
 def save_image_torch(img, i):
-
     print(img.max(), img.min())
     img = np.array(img[:32])
-    img = einops.rearrange(img, 'b c h w->b h w c')
+    img = einops.rearrange(img, 'b  h w c->b  c h w ')
     os.makedirs('imgs', exist_ok=True)
     img = torch.from_numpy(img)
     print(img.shape)
