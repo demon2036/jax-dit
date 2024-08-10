@@ -36,7 +36,7 @@ def test_sharding(rng, x):
 
 def test_convert():
     rng = jax.random.key(0)
-    print(rng)
+
     device_count = jax.device_count()
     mesh_shape = (device_count,)
 
@@ -49,8 +49,7 @@ def test_convert():
     rng = jax.random.split(rng, num=device_count)
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
-
-    b,h,w,c=shape=64,32,32,4
+    b, h, w, c = shape = 64, 32, 32, 4
 
     x = jax.device_put(jnp.ones(shape), x_sharding)
 
@@ -64,8 +63,9 @@ def test_convert():
     # print('Communicating?', 'collective-permute' in f_exe.as_text())
 
     rng = test_sharding_jit(rng, x)
-
     print(rng)
+    print(rng.shape)
+
 
     """
     while True:
