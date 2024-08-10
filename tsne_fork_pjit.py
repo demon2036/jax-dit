@@ -50,15 +50,13 @@ def test_convert():
 
     rng = jax.random.split(rng, num=jax.local_device_count())
 
-
-
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
     rng = convert_to_global_array(rng, x_sharding)
 
     print(rng.shape)
 
-
+    print(rng.sharding, )
 
     b, h, w, c = shape = 64, 32, 32, 4
 
