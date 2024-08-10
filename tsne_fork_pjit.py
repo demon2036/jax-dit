@@ -69,7 +69,7 @@ def test_sharding(rng, params, vae_params, class_label: int, diffusion_sample, v
     latent = latent / 0.18215
     image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
     image = image / 2 + 0.5
-    image = einops.rearrange(image, 'b c h w->b h w c')
+    # image = einops.rearrange(image, 'b c h w->b h w c')
 
     return rng, image
 
@@ -151,7 +151,7 @@ def test_convert():
 
     class_label = 2
 
-    b, h, w, c = shape = 64, 32, 32, 4
+    b, h, w, c = shape = 1, 32, 32, 4
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
     rng = jax.random.split(rng, num=jax.device_count())
@@ -286,8 +286,9 @@ def save_image_torch(img, i):
     img = np.array(img[:32])
 
     os.makedirs('imgs', exist_ok=True)
-
-    save_image(torch.from_numpy(img), f'imgs/{i}.png')
+    img=torch.from_numpy(img)
+    print(img.shape)
+    save_image(img, f'imgs/{i}.png')
 
 
 if __name__ == "__main__":
