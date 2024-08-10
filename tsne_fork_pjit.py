@@ -18,15 +18,16 @@ import flax
 import flax.linen as nn
 import os
 import matplotlib.pyplot as plt
+from prefetch import convert_to_global_array
 
 
 def t_print(p, x):
     print(p)
 
-def test_sharding(rng, x):
 
-    new_rng, local_rng = jax.random.split(rng[0],2)
-    print(rng.shape,)
+def test_sharding(rng, x):
+    new_rng, local_rng = jax.random.split(rng[0], 2)
+    print(rng.shape, )
 
     numbers = jax.random.uniform(local_rng, x.shape)
 
@@ -48,9 +49,28 @@ def test_convert():
         return NamedSharding(mesh, pspec)
 
     rng = jax.random.split(rng, num=device_count)
+
+
+
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
+
+    rng = convert_to_global_array(rng,x_sharding)
+
     b, h, w, c = shape = 64, 32, 32, 4
+
+    
+    
+
+
+
+
+
+    # while True:
+    #     pass
+
+
+
 
     x = jax.device_put(jnp.ones(shape), x_sharding)
 
