@@ -45,8 +45,8 @@ def t_print(p, x):
     print(p)
 
 
-def test_sharding(rng, params, shape, class_label: int, cfg_scale: float = 1.5):
-    new_rng, local_rng = jax.random.split(rng[0], 2)
+def test_sharding(rng, params,diffusion_sample, shape, class_label: int, cfg_scale: float = 1.5):
+    new_rng, local_rng,sample_rng = jax.random.split(rng[0], 3)
     # numbers = jax.random.normal(local_rng, shape)
 
     class_labels = jnp.ones((shape[0],), dtype=jnp.int32) * class_label
@@ -58,6 +58,8 @@ def test_sharding(rng, params, shape, class_label: int, cfg_scale: float = 1.5):
     model_kwargs = dict(y=y, cfg_scale=cfg_scale)
 
     rng = rng.at[0].set(new_rng)
+
+    latent = diffusion_sample.ddim_sample_loop(params, z.shape, z, clip_denoised=False, model_kwargs=model_kwargs, key=sample_rng,eta=0.0)
 
     return rng, z
 
@@ -114,7 +116,7 @@ def test_convert():
 
     class_label = 2
 
-    b, h, w, c = shape = 64, 32, 32, 4
+    b, h, w, c = shape = 8, 32, 32, 4
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
     rng = jax.random.split(rng, num=jax.device_count())
@@ -134,16 +136,15 @@ def test_convert():
 
     # print(type(converted_jax_params))
 
-    test_sharding_jit = shard_map(functools.partial(test_sharding, shape=shape, class_label=class_label, ),
+    test_sharding_jit = shard_map(functools.partial(test_sharding, shape=shape, class_label=class_label,diffusion_sample=diffusion_sample ),
                                   mesh=mesh,
                                   in_specs=(PartitionSpec('data'), PartitionSpec(None),),
                                   out_specs=PartitionSpec('data'), )
 
-    test_sharding_jit=jax.jit(test_sharding_jit)
-
+    test_sharding_jit = jax.jit(test_sharding_jit)
 
     for i in range(2):
-        rng, numbers = test_sharding_jit(rng, converted_jax_params)
+        rng, numbers = test_sharding_jit(rng, converted_jax_params,)
         b, *_ = rng.shape
         per_process_batch = b // jax.process_count()
         process_idx = jax.process_index()
