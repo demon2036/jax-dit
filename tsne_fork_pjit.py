@@ -67,9 +67,8 @@ def test_sharding(rng, params, vae_params, class_label: int, diffusion_sample, v
 
     latent = latent / 0.18215
     image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
-    print(image.shape)
+    image = image / 2 + 0.5
     image = einops.rearrange(image, 'b c h w->b h w c')
-    # return
 
     return rng, image
 
@@ -251,29 +250,28 @@ def test_convert2():
     converted_jax_params, vae_params = replicate(converted_jax_params), replicate(vae_params)
     rng = shard_prng_key(rng)
 
-    for label in range(1000):
+    for label in range(2,1000):
 
         for i in tqdm.tqdm(range(20)):
 
-            rng, numbers = test_sharding_pmap(rng, converted_jax_params, vae_params, )
+            rng, images = test_sharding_pmap(rng, converted_jax_params, vae_params, )
             b, *_ = rng.shape
             per_process_batch = b // jax.process_count()
             process_idx = jax.process_index()
             local_rng = rng[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
 
             if jax.process_index() == 0:
-                print(rng.shape, numbers.shape)
+                print(rng.shape, images.shape)
                 print(local_rng)
                 print(local_rng.shape)
+
+                show_image(images, i)
+
                 # print(test_sharding_pmap._cache_size())
 
 
 def show_image(img, i):
-    img = img / 2 + 0.5
     print(img.max(), img.min())
-    # img=img[0]
-    # print(img.max(), img.min())
-
     plt.imshow(np.array(img[0]))
     plt.show()
 
@@ -316,8 +314,8 @@ if __name__ == "__main__":
     # model = DiT_S_2_jax(out_channels=c, labels=1000, image_size=h, condition=True)
     # params = model.init(rng, x, t, y, train=True)['params']
     # print(params.keys())
-    # test_convert()
-    test_convert2()
+    test_convert()
+    # test_convert2()
     # model, model_params = test_convert()
 
     """
