@@ -65,7 +65,7 @@ def test_sharding(rng, params, vae_params, diffusion_sample, vae, shape, class_l
     # image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
     # return einops.rearrange(image, 'b c h w->b h w c')
 
-    return rng, latent,params, vae_params
+    return rng, latent, params, vae_params
 
 
 def create_state():
@@ -140,6 +140,9 @@ def test_convert():
 
     vae_path = 'stabilityai/sd-vae-ft-mse'
     vae, vae_params = FlaxAutoencoderKL.from_pretrained(pretrained_model_name_or_path=vae_path, from_pt=True)
+
+    vae_params=jax.tree_util.tree_map(jnp.asarray,vae_params)
+
     vae_params = FrozenDict(vae_params)
 
     test_sharding_jit = shard_map(
@@ -147,12 +150,12 @@ def test_convert():
                           vae=vae),
         mesh=mesh,
         in_specs=(PartitionSpec('data'), PartitionSpec(None), PartitionSpec(None)),
-        out_specs=(PartitionSpec('data'),PartitionSpec('data'),PartitionSpec(None),PartitionSpec(None)), )
+        out_specs=(PartitionSpec('data'), PartitionSpec('data'), PartitionSpec(None), PartitionSpec(None)), )
 
     test_sharding_jit = jax.jit(test_sharding_jit)
     print('Here We Go!')
     for i in range(2):
-        rng, numbers,converted_jax_params, vae_params = test_sharding_jit(rng, converted_jax_params, vae_params)
+        rng, numbers, converted_jax_params, vae_params = test_sharding_jit(rng, converted_jax_params, vae_params)
         b, *_ = rng.shape
         per_process_batch = b // jax.process_count()
         process_idx = jax.process_index()
