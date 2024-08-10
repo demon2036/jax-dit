@@ -25,7 +25,7 @@ def t_print(p, x):
     print(p)
 
 
-def test_sharding(rng):
+def test_sharding(rng,x):
     new_rng, local_rng = jax.random.split(rng[0], 2)
     # # print(rng.shape, )
     #
@@ -90,8 +90,8 @@ def test_convert():
     # f_exe = test_sharding_jit.lower(rng, x).compile()
     # print('Communicating?', 'collective-permute' in f_exe.as_text())
     for i in range(2):
-        # rng = test_sharding_jit(rng, x)
-        rng = test_sharding_jit(rng)
+        rng = test_sharding_jit(rng, x)
+        # rng = test_sharding_jit(rng)
 
         if jax.process_index() == 0:
             print(rng)
