@@ -123,7 +123,7 @@ def test_convert():
 
     class_label = 2
 
-    b, h, w, c = shape = 1, 32, 32, 4
+    b, h, w, c = shape = 64, 32, 32, 4
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
     rng = jax.random.split(rng, num=jax.device_count())
@@ -176,10 +176,10 @@ def test_convert():
         process_idx = jax.process_index()
         local_rng = rng[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
 
-        # if jax.process_index() == 0:
-        # print(rng.shape, numbers.shape)
-        # print(local_rng)
-        # print(local_rng.shape)
+        if jax.process_index() == 0:
+            print(rng.shape, numbers.shape)
+            print(local_rng)
+            print(local_rng.shape)
 
 
 def show_image(img, i):
