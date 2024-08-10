@@ -61,6 +61,9 @@ def test_sharding(rng, params,vae_params, diffusion_sample, vae, shape, class_la
 
     latent = diffusion_sample.ddim_sample_loop(params, z.shape, z, clip_denoised=False, model_kwargs=model_kwargs,
                                                key=sample_rng, eta=0.0)
+
+    latent,_ = jnp.split(latent, axis=0)
+
     latent = latent / 0.18215
     image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
 
