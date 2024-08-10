@@ -25,9 +25,8 @@ def convert_to_global_array(x, x_sharding):
     )
 
     for batch, device in zip(per_replica_batches_x, x_sharding.addressable_devices):
-        if jax.process_index()==0:
+        if jax.process_index() == 0:
             print(device)
-
 
     return global_batch_array_x
 
@@ -64,7 +63,8 @@ def prefetch_to_device(
 
         def enqueue(n):
             for data in itertools.islice(iterator, n):
-                data = jax.tree_util.tree_map(functools.partial(convert_to_global_array, x_sharding=data_sharding),data)
+                data = jax.tree_util.tree_map(functools.partial(convert_to_global_array, x_sharding=data_sharding),
+                                              data)
                 queue.append(data)
 
         enqueue(size)

@@ -58,14 +58,14 @@ def test_convert():
 
     rng = convert_to_global_array(rng, x_sharding)
 
-    print()
-
-    print(rng.shape, rng.sharding.addressable_devices, )
+    if jax.process_index() == 0:
+        print()
+        print(rng.shape, rng.sharding.addressable_devices, )
+        print(mesh.devices)
 
     # x = jax.device_put(jnp.ones(shape), x_sharding)
 
     # test_sharding_jit = jax.jit(test_sharding, in_shardings= x_sharding, out_shardings=x_sharding)
-    print(mesh.devices)
 
     test_sharding_jit = shard_map(test_sharding, mesh=mesh, in_specs=PartitionSpec('data'),
                                   out_specs=PartitionSpec('data'), )
@@ -77,9 +77,9 @@ def test_convert():
         # rng = test_sharding_jit(rng, x)
         rng = test_sharding_jit(rng)
 
-        if jax.process_index() == 0:
-            print(rng)
-            print(rng.shape)
+        # if jax.process_index() == 0:
+        #     print(rng)
+        #     print(rng.shape)
 
     """
     while True:
