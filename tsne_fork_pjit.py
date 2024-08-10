@@ -45,7 +45,7 @@ def t_print(p, x):
     print(p)
 
 
-def test_sharding(rng,params, diffusion_sample, shape, class_label: int, cfg_scale: float = 1.5):
+def test_sharding(rng,params, shape, class_label: int, cfg_scale: float = 1.5):
     new_rng, local_rng = jax.random.split(rng[0], 2)
     # numbers = jax.random.normal(local_rng, shape)
 
@@ -130,7 +130,7 @@ def test_convert():
     model, converted_jax_params = create_state()
     diffusion_sample = create_diffusion_sample(model=model, apply_fn=model.forward_with_cfg)
 
-    test_sharding_jit = shard_map(functools.partial(test_sharding, shape=shape, class_label=class_label, diffusion_sample=diffusion_sample,),
+    test_sharding_jit = shard_map(functools.partial(test_sharding, shape=shape, class_label=class_label,),
 
                                   mesh=mesh,
                                   in_specs=(PartitionSpec('data'), None,),
