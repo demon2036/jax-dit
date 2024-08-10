@@ -217,7 +217,7 @@ def test_convert():
                         # "json": label,
                     })
 
-            threading.Thread(target=thread_write, ).start()
+            threading.Thread(target=thread_write, args=(images,sink)).start()
 
 
 def show_image(img, i):
