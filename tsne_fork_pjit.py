@@ -24,7 +24,6 @@ def t_print(p, x):
     print(p)
 
 
-jax.pmap()
 
 
 def test_sharding(rng, x):
