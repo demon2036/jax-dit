@@ -49,7 +49,10 @@ def test_convert():
     rng = jax.random.split(rng, num=device_count)
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
-    x = jax.device_put(jnp.arange(24), x_sharding)
+
+    b,h,w,c=shape=64,32,32,4
+
+    x = jax.device_put(jnp.ones(shape), x_sharding)
 
     # test_sharding_jit = jax.jit(test_sharding, in_shardings=(None, x_sharding), out_shardings=x_sharding)
 
