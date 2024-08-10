@@ -1,6 +1,7 @@
 import functools
 from pathlib import Path
 
+import PIL.Image
 import einops
 import numpy as np
 import torch
@@ -209,7 +210,7 @@ def test_convert():
             for img in images:
                 sink.write({
                     "__key__": "%010d" % i,
-                    "jpg.pyd": np.array(img * 255, dtype=np.uint8),
+                    "jpg": PIL.Image.fromarray(np.array(img * 255, dtype=np.uint8)),
                     "cls": label,
                     # "json": label,
                 })
