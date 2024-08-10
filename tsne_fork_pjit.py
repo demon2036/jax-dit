@@ -130,8 +130,8 @@ def test_convert():
     model, converted_jax_params = create_state()
     diffusion_sample = create_diffusion_sample(model=model, apply_fn=model.forward_with_cfg)
 
-    test_sharding_jit = shard_map(functools.partial(test_sharding, shape=shape, class_label=class_label),
-                                  diffusion_sample=diffusion_sample,
+    test_sharding_jit = shard_map(functools.partial(test_sharding, shape=shape, class_label=class_label, diffusion_sample=diffusion_sample,),
+
                                   mesh=mesh,
                                   in_specs=(PartitionSpec('data'), None,),
                                   out_specs=PartitionSpec('data'), )
