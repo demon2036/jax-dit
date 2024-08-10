@@ -182,6 +182,7 @@ def test_convert():
             print(rng.shape, numbers.shape)
             print(local_rng)
             print(local_rng.shape)
+            print(test_sharding_jit._cache_size())
 
 
 def show_image(img, i):
