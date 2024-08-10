@@ -98,7 +98,7 @@ def create_state():
 
     model_torch = DiT_S_2_torch()
 
-    model_torch.load_state_dict(download_model('ref/pretrained_models/DiT-XL-2-256x256.pt'))
+    model_torch.load_state_dict(download_model('DiT-XL-2-256x256.pt'))
 
     converted_jax_params = convert_torch_to_jax(model_torch.state_dict())
     return model, converted_jax_params
