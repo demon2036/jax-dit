@@ -48,7 +48,7 @@ def test_convert():
     def mesh_sharding(pspec: PartitionSpec) -> NamedSharding:
         return NamedSharding(mesh, pspec)
 
-    rng = jax.random.split(rng, num=device_count)
+    rng = jax.random.split(rng, num=jax.local_device_count())
 
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
