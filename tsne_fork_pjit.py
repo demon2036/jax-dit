@@ -45,7 +45,7 @@ def t_print(p, x):
     print(p)
 
 
-def test_sharding(rng,params, shape, class_label: int, cfg_scale: float = 1.5):
+def test_sharding(rng, params, shape, class_label: int, cfg_scale: float = 1.5):
     new_rng, local_rng = jax.random.split(rng[0], 2)
     # numbers = jax.random.normal(local_rng, shape)
 
@@ -130,13 +130,14 @@ def test_convert():
     model, converted_jax_params = create_state()
     diffusion_sample = create_diffusion_sample(model=model, apply_fn=model.forward_with_cfg)
 
-    print(type(converted_jax_params))
+    converted_jax_params = jax.tree_util.tree_map(jnp.asarray, converted_jax_params)
 
+    # print(type(converted_jax_params))
 
-    test_sharding_jit = shard_map(functools.partial(test_sharding, shape=shape, class_label=class_label,),
+    test_sharding_jit = shard_map(functools.partial(test_sharding, shape=shape, class_label=class_label, ),
 
                                   mesh=mesh,
-                                  in_specs=(PartitionSpec('data'), None,),
+                                  in_specs=(PartitionSpec('data'), PartitionSpec(None),),
                                   out_specs=PartitionSpec('data'), )
 
     for i in range(2):
