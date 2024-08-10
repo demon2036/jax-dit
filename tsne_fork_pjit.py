@@ -50,15 +50,18 @@ def test_convert():
 
     rng = jax.random.split(rng, num=jax.local_device_count())
 
+    b, h, w, c = shape = 64, 32, 32, 4
+    x = jax.device_put(jnp.ones(shape))
+
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
-    rng = convert_to_global_array(rng, x_sharding)
+    rng = convert_to_global_array(x, x_sharding)
 
     print()
 
     print(rng.shape, rng.sharding.addressable_devices, )
 
-    b, h, w, c = shape = 64, 32, 32, 4
+
 
     # x = jax.device_put(jnp.ones(shape), x_sharding)
 
