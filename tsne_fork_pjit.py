@@ -57,14 +57,11 @@ def test_convert():
 
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
-
-
     # print(x_sharding.addressable_devices)
     if jax.process_index() == 0:
         print(x_sharding.addressable_devices)
-        print('\n'*2)
-        print( set(mesh.devices.flat))
-
+        print('\n' * 2)
+        print(set(mesh.devices.flat))
 
     rng = convert_to_global_array(rng, x_sharding)
 
