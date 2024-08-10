@@ -23,8 +23,9 @@ def t_print(p, x):
     print(p)
 
 
-def test_sharding(rng):
-    return rng
+def test_sharding(rng,x):
+    numbers = jax.random.uniform(rng, x.shape)
+    return x + numbers
 
 
 def test_convert():
@@ -42,14 +43,21 @@ def test_convert():
     rng = jax.random.split(rng, num=device_count)
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
-    test_sharding_jit = jax.jit(test_sharding, in_shardings=x_sharding, out_shardings=x_sharding)
+    x = jax.device_put(jnp.arange(24), x_sharding)
 
-    rng = test_sharding_jit(rng)
+    test_sharding_jit = jax.jit(test_sharding, in_shardings=(x_sharding,x_sharding), out_shardings=(x_sharding,x_sharding))
+
+
+    jax.config.update('jax_threefry_partitionable', False)
+    f_exe = test_sharding_jit.lower(rng,x).compile()
+    print('Communicating?', 'collective-permute' in f_exe.as_text())
+
+
+
+    rng = test_sharding_jit(rng,x)
 
     print(rng)
-    jax.config.update('jax_threefry_partitionable', False)
-    f_exe = test_sharding_jit.lower(rng).compile()
-    print('Communicating?', 'collective-permute' in f_exe.as_text())
+
 
 
     """
