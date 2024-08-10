@@ -166,7 +166,7 @@ def test_convert():
 
     test_sharding_jit = jax.jit(test_sharding_jit)
 
-    for i in tqdm.tqdm(range(2)):
+    for i in tqdm.tqdm(range(20000)):
         # print('Here We Go!')
         rng, numbers, = test_sharding_jit(rng, converted_jax_params,vae_params )
         b, *_ = rng.shape
