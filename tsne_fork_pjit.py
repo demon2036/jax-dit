@@ -37,6 +37,7 @@ def test_sharding(rng):
 
 
 def test_convert():
+    jax.distributed.initialize()
     rng = jax.random.key(0)
 
     device_count = jax.device_count()
