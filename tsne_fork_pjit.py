@@ -47,11 +47,11 @@ def test_convert():
     rng = test_sharding_jit(rng)
 
     print(rng)
-
+    """
     while True:
         pass
 
-    """
+    
     
     b, h, w, c = shape = 1, 32, 32, 4
     rng = jax.random.PRNGKey(42)
@@ -168,8 +168,8 @@ if __name__ == "__main__":
     # model = DiT_S_2_jax(out_channels=c, labels=1000, image_size=h, condition=True)
     # params = model.init(rng, x, t, y, train=True)['params']
     # print(params.keys())
-    # test_convert()
-    model, model_params = test_convert()
+    test_convert()
+    # model, model_params = test_convert()
 
     """
     diffusion_sample = create_diffusion_sample(model=model, apply_fn=model.forward_with_cfg)
