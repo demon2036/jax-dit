@@ -32,7 +32,7 @@ def convert_to_global_array(x, x_sharding):
 
     print()
 
-    s = sorted(x_sharding.addressable_devices, key=lambda x: (x[1], x[0]))
+    s = sorted(x_sharding.addressable_devices, key=lambda x: (x.coords[1], x.coords[0]))
 
     for batch, device in zip(per_replica_batches_x, s):
         if jax.process_index() == 0:
