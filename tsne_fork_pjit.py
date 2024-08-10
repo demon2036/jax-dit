@@ -45,7 +45,7 @@ def t_print(p, x):
     print(p)
 
 
-def test_sharding(rng, params,diffusion_sample, shape, class_label: int, cfg_scale: float = 1.5):
+def test_sharding(rng, params,vae_params,diffusion_sample,vae, shape, class_label: int, cfg_scale: float = 1.5):
     new_rng, local_rng,sample_rng = jax.random.split(rng[0], 3)
     # numbers = jax.random.normal(local_rng, shape)
 
@@ -60,6 +60,9 @@ def test_sharding(rng, params,diffusion_sample, shape, class_label: int, cfg_sca
     rng = rng.at[0].set(new_rng)
 
     latent = diffusion_sample.ddim_sample_loop(params, z.shape, z, clip_denoised=False, model_kwargs=model_kwargs, key=sample_rng,eta=0.0)
+    latent = latent / 0.18215
+    image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
+    # return einops.rearrange(image, 'b c h w->b h w c')
 
     return rng, z
 
@@ -134,9 +137,11 @@ def test_convert():
 
     converted_jax_params = jax.tree_util.tree_map(jnp.asarray, converted_jax_params)
 
-    # print(type(converted_jax_params))
+    vae_path = 'stabilityai/sd-vae-ft-mse'
+    vae, vae_params = FlaxAutoencoderKL.from_pretrained(pretrained_model_name_or_path=vae_path, from_pt=True)
+    vae_params = FrozenDict(vae_params)
 
-    test_sharding_jit = shard_map(functools.partial(test_sharding, shape=shape, class_label=class_label,diffusion_sample=diffusion_sample ),
+    test_sharding_jit = shard_map(functools.partial(test_sharding, shape=shape, class_label=class_label,diffusion_sample=diffusion_sample,vae=vae ),
                                   mesh=mesh,
                                   in_specs=(PartitionSpec('data'), PartitionSpec(None),),
                                   out_specs=PartitionSpec('data'), )
@@ -144,7 +149,7 @@ def test_convert():
     test_sharding_jit = jax.jit(test_sharding_jit)
 
     for i in range(2):
-        rng, numbers = test_sharding_jit(rng, converted_jax_params,)
+        rng, numbers = test_sharding_jit(rng, converted_jax_params,vae_params)
         b, *_ = rng.shape
         per_process_batch = b // jax.process_count()
         process_idx = jax.process_index()
