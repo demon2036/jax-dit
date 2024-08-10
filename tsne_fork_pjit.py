@@ -3,6 +3,7 @@ import functools
 import einops
 import numpy as np
 import torch
+import tqdm
 from diffusers import FlaxAutoencoderKL
 from flax.core import FrozenDict
 from flax.training.common_utils import shard_prng_key
@@ -58,13 +59,13 @@ def test_sharding(rng, params,vae_params, diffusion_sample, vae, shape, class_la
 
     rng = rng.at[0].set(new_rng)
 
-    latent = diffusion_sample.ddim_sample_loop(params, z.shape, z, clip_denoised=False, model_kwargs=model_kwargs,
-                                               key=sample_rng, eta=0.0)
+    # latent = diffusion_sample.ddim_sample_loop(params, z.shape, z, clip_denoised=False, model_kwargs=model_kwargs,
+    #                                            key=sample_rng, eta=0.0)
     # latent = latent / 0.18215
     # image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
     # return einops.rearrange(image, 'b c h w->b h w c')
 
-    return rng, latent
+    return rng, z
 
 
 def create_state():
@@ -165,8 +166,8 @@ def test_convert():
 
     test_sharding_jit = jax.jit(test_sharding_jit)
 
-    for i in range(2):
-        print('Here We Go!')
+    for i in tqdm.tqdm(range(2)):
+        # print('Here We Go!')
         rng, numbers, = test_sharding_jit(rng, converted_jax_params,vae_params )
         b, *_ = rng.shape
         per_process_batch = b // jax.process_count()
