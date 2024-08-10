@@ -52,9 +52,9 @@ def test_convert():
 
     test_sharding_jit = shard_map(test_sharding,mesh=mesh, in_specs=PartitionSpec('data'), out_specs=PartitionSpec('data'),)
 
-    jax.config.update('jax_threefry_partitionable', False)
-    f_exe = test_sharding_jit.lower(rng, x).compile()
-    print('Communicating?', 'collective-permute' in f_exe.as_text())
+    # jax.config.update('jax_threefry_partitionable', False)
+    # f_exe = test_sharding_jit.lower(rng, x).compile()
+    # print('Communicating?', 'collective-permute' in f_exe.as_text())
 
     rng = test_sharding_jit(rng, x)
 
