@@ -47,7 +47,7 @@ def test_convert():
     rng = test_sharding_jit(rng)
 
     print(rng)
-
+    jax.config.update('jax_threefry_partitionable', False)
     f_exe = test_sharding_jit.lower(rng).compile()
     print('Communicating?', 'collective-permute' in f_exe.as_text())
 
