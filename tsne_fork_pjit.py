@@ -46,7 +46,7 @@ def t_print(p, x):
     print(p)
 
 
-def test_sharding(rng, params,vae_params, diffusion_sample, vae, shape, class_label: int, cfg_scale: float = 1.5):
+def test_sharding(rng, params, vae_params, class_label: int, diffusion_sample, vae, shape, cfg_scale: float = 1.5):
     new_rng, local_rng, sample_rng = jax.random.split(rng[0], 3)
 
     class_labels = jnp.ones((shape[0],), dtype=jnp.int32) * class_label
@@ -62,12 +62,12 @@ def test_sharding(rng, params,vae_params, diffusion_sample, vae, shape, class_la
     latent = diffusion_sample.ddim_sample_loop(params, z.shape, z, clip_denoised=False, model_kwargs=model_kwargs,
                                                key=sample_rng, eta=0.0)
 
-    latent,_ = jnp.split(latent,2, axis=0)
+    latent, _ = jnp.split(latent, 2, axis=0)
 
     latent = latent / 0.18215
     image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
     print(image.shape)
-    image=einops.rearrange(image, 'b c h w->b h w c')
+    image = einops.rearrange(image, 'b c h w->b h w c')
     # return
 
     return rng, image
@@ -125,7 +125,7 @@ def test_convert():
 
     class_label = 2
 
-    b, h, w, c = shape = 128, 32, 32, 4
+    b, h, w, c = shape = 1, 32, 32, 4
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
     rng = jax.random.split(rng, num=jax.device_count())
@@ -155,28 +155,25 @@ def test_convert():
     print(converted_jax_params['x_embedder']['proj']['kernel'].devices())
     print(vae_params['decoder']['conv_in']['bias'].devices())
     print(type(converted_jax_params), type(vae_params))
-    # while True:
 
     # vae_params = FrozenDict(vae_params)
 
     test_sharding_jit = shard_map(
-        functools.partial(test_sharding, shape=shape,  diffusion_sample=diffusion_sample,
+        functools.partial(test_sharding, shape=shape, diffusion_sample=diffusion_sample,
                           vae=vae),
         mesh=mesh,
         in_specs=(PartitionSpec('data'), PartitionSpec(None),
-                  PartitionSpec(None)
-
+                  PartitionSpec(None), PartitionSpec()
                   ),
         out_specs=PartitionSpec('data'))
 
     test_sharding_jit = jax.jit(test_sharding_jit)
 
-
     for label in range(1000):
-        test_sharding_jit=functools.partial(test_sharding_jit,class_label=label)
+        # test_sharding_jit = functools.partial(test_sharding_jit, class_label=label)
 
-        for i in tqdm.tqdm(range(10)):
-            rng, numbers, = test_sharding_jit(rng, converted_jax_params,vae_params )
+        for i in tqdm.tqdm(range(20)):
+            rng, numbers = test_sharding_jit(rng, converted_jax_params, vae_params, label)
             b, *_ = rng.shape
             per_process_batch = b // jax.process_count()
             process_idx = jax.process_index()
@@ -187,7 +184,6 @@ def test_convert():
                 print(local_rng)
                 print(local_rng.shape)
                 print(test_sharding_jit._cache_size())
-
 
 
 def show_image(img, i):
