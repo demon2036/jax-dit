@@ -50,7 +50,7 @@ def test_convert():
 
     # test_sharding_jit = jax.jit(test_sharding, in_shardings=(None, x_sharding), out_shardings=x_sharding)
 
-    test_sharding_jit = shard_map(test_sharding,mesh=mesh, in_shardings=(x_sharding, x_sharding), out_shardings=x_sharding)
+    test_sharding_jit = shard_map(test_sharding,mesh=mesh, in_specs=(x_sharding, x_sharding), out_specs=x_sharding)
 
     jax.config.update('jax_threefry_partitionable', False)
     f_exe = test_sharding_jit.lower(rng, x).compile()
