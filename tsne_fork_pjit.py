@@ -32,7 +32,7 @@ def test_sharding(rng, shape, class_label: int,cfg_scale:float=1.5):
     # numbers = jax.random.normal(local_rng, shape)
 
     class_labels = jnp.ones((shape[0],), dtype=jnp.int32) * class_label
-    z = jax.random.normal(key=rng, shape=shape)
+    z = jax.random.normal(key=local_rng, shape=shape)
     z = jnp.concat([z, z], axis=0)
     y = jnp.array(class_labels)
     y_null = jnp.array([1000] * shape[0])
