@@ -29,9 +29,7 @@ def test_sharding(rng):
 
 def test_convert():
     rng = jax.random.key(0)
-    #
-
-    #
+    print(rng)
     device_count = jax.device_count()
     mesh_shape = (device_count,)
 
