@@ -45,7 +45,7 @@ def t_print(p, x):
     print(p)
 
 
-def test_sharding(rng, shape, class_label: int, cfg_scale: float = 1.5):
+def test_sharding(rng,params, diffusion_sample, shape, class_label: int, cfg_scale: float = 1.5):
     new_rng, local_rng = jax.random.split(rng[0], 2)
     # numbers = jax.random.normal(local_rng, shape)
 
@@ -60,11 +60,6 @@ def test_sharding(rng, shape, class_label: int, cfg_scale: float = 1.5):
     rng = rng.at[0].set(new_rng)
 
     return rng, z
-
-
-
-
-
 
 
 def create_state():
@@ -91,7 +86,7 @@ def create_state():
 
     # model.apply({'params': params}, x, t, y)
 
-    print(params.keys())
+    # print(params.keys())
 
     # jax.tree_util.tree_map_with_path(t_print, params['final_layer'])
     # print()
@@ -102,10 +97,6 @@ def create_state():
 
     converted_jax_params = convert_torch_to_jax(model_torch.state_dict())
     return model, converted_jax_params
-
-
-
-
 
 
 def test_convert():
@@ -136,16 +127,17 @@ def test_convert():
         if jax.process_index() == 0:
             print(device, device.coords, type(device.coords))
 
-    test_sharding_jit = shard_map(functools.partial(test_sharding, shape=shape, class_label=class_label),
-                                  mesh=mesh,
-                                  in_specs=PartitionSpec('data'),
-                                  out_specs=PartitionSpec('data'), )
-
-    model, converted_jax_params=create_state()
+    model, converted_jax_params = create_state()
     diffusion_sample = create_diffusion_sample(model=model, apply_fn=model.forward_with_cfg)
 
+    test_sharding_jit = shard_map(functools.partial(test_sharding, shape=shape, class_label=class_label),
+                                  diffusion_sample=diffusion_sample,
+                                  mesh=mesh,
+                                  in_specs=(PartitionSpec('data'), None,),
+                                  out_specs=PartitionSpec('data'), )
+
     for i in range(2):
-        rng, numbers = test_sharding_jit(rng)
+        rng, numbers = test_sharding_jit(rng, converted_jax_params)
         b, *_ = rng.shape
         per_process_batch = b // jax.process_count()
         process_idx = jax.process_index()
@@ -155,12 +147,6 @@ def test_convert():
         print(rng.shape, numbers.shape)
         print(local_rng)
         print(local_rng.shape)
-
-
-
-
-
-
 
 
 def show_image(img, i):
