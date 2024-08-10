@@ -25,11 +25,11 @@ def t_print(p, x):
     print(p)
 
 
-def test_sharding(rng, x):
+def test_sharding(rng):
     new_rng, local_rng = jax.random.split(rng[0], 2)
     # print(rng.shape, )
 
-    numbers = jax.random.uniform(local_rng, x.shape)
+    # numbers = jax.random.uniform(local_rng, x.shape)
 
     rng = rng.at[0].set(new_rng)
 
@@ -50,29 +50,13 @@ def test_convert():
 
     rng = jax.random.split(rng, num=device_count)
 
-
-
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
-
-    rng = convert_to_global_array(rng,x_sharding)
+    rng = convert_to_global_array(rng, x_sharding)
 
     b, h, w, c = shape = 64, 32, 32, 4
 
-    
-    
-
-
-
-
-
-    # while True:
-    #     pass
-
-
-
-
-    x = jax.device_put(jnp.ones(shape), x_sharding)
+    # x = jax.device_put(jnp.ones(shape), x_sharding)
 
     # test_sharding_jit = jax.jit(test_sharding, in_shardings=(None, x_sharding), out_shardings=x_sharding)
 
@@ -83,9 +67,12 @@ def test_convert():
     # f_exe = test_sharding_jit.lower(rng, x).compile()
     # print('Communicating?', 'collective-permute' in f_exe.as_text())
     for i in range(2):
-        rng = test_sharding_jit(rng, x)
-        print(rng)
-        print(rng.shape)
+        # rng = test_sharding_jit(rng, x)
+        rng = test_sharding_jit(rng)
+
+        if jax.process_index() == 0:
+            print(rng)
+            print(rng.shape)
 
     """
     while True:
