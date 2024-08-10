@@ -1,4 +1,5 @@
 import functools
+import threading
 from pathlib import Path
 
 import PIL.Image
@@ -185,7 +186,7 @@ def test_convert():
 
     sink = wds.ShardWriter(
         shard_filename,
-        maxcount=1024,
+        maxcount=2048,
         maxsize=3e10,
         # maxsize=shard_size,
     )
@@ -207,13 +208,18 @@ def test_convert():
                 print(test_sharding_jit._cache_size())
                 save_image_torch(images, i)
 
-            for img in images:
-                sink.write({
-                    "__key__": "%010d" % i,
-                    "jpg": PIL.Image.fromarray(np.array(img * 255, dtype=np.uint8)),
-                    "cls": label,
-                    # "json": label,
-                })
+
+
+            def thread_write():
+                for img in images:
+                    sink.write({
+                        "__key__": "%010d" % i,
+                        "jpg": PIL.Image.fromarray(np.array(img * 255, dtype=np.uint8)),
+                        "cls": label,
+                        # "json": label,
+                    })
+
+            threading.Thread(target=thread_write,).start()
 
 
 def show_image(img, i):
