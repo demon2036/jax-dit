@@ -20,11 +20,17 @@ def convert_to_global_array(x, x_sharding):
         global_batch_shape_x, sharding=x_sharding,
         arrays=[
             jax.device_put(batch, device)
-            for batch, device in zip(per_replica_batches_x, x_sharding.local_devices)
+            for batch, device in zip(per_replica_batches_x, x_sharding.addressable_devices)
         ]
     )
 
-    for batch, device in zip(per_replica_batches_x, x_sharding.local_devices):
+
+
+    while True:
+        pass
+
+
+    for batch, device in zip(per_replica_batches_x, x_sharding.addressable_devices):
         if jax.process_index() == 0:
             print(device)
 

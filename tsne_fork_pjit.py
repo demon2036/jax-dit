@@ -37,7 +37,7 @@ def test_sharding(rng):
 
 
 def test_convert():
-    jax.distributed.initialize()
+    # jax.distributed.initialize()
     rng = jax.random.key(0)
 
     device_count = jax.device_count()
@@ -45,8 +45,6 @@ def test_convert():
 
     device_mesh = mesh_utils.create_device_mesh(mesh_shape)
     mesh = Mesh(device_mesh, axis_names=('data',))
-
-    # print(mesh.local_devices)
 
     def mesh_sharding(pspec: PartitionSpec) -> NamedSharding:
         return NamedSharding(mesh, pspec)
@@ -59,7 +57,11 @@ def test_convert():
 
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
-    rng = convert_to_global_array(rng, mesh)
+    # print(x_sharding.addressable_devices)
+    print(x_sharding.addressable_devices,set(mesh.devices.flat))
+
+
+    rng = convert_to_global_array(rng, x_sharding)
 
     if jax.process_index() == 0:
         print()
