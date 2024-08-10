@@ -57,6 +57,8 @@ def test_convert():
 
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
+
+
     # print(x_sharding.addressable_devices)
     if jax.process_index() == 0:
         print(x_sharding.addressable_devices)
