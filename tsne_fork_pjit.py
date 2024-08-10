@@ -23,11 +23,11 @@ import matplotlib.pyplot as plt
 def t_print(p, x):
     print(p)
 
-
 def test_sharding(rng, x):
     local_rng = rng[0]
 
-    rng, local_rng = jnp.split(rng)
+    rng, local_rng = jax.random.split(rng,2)
+    print(rng.shape,)
 
     numbers = jax.random.uniform(local_rng, x.shape)
 
