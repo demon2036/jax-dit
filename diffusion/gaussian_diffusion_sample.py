@@ -72,7 +72,7 @@ class GaussianDiffusion:
 
         self.num_timesteps = int(betas.shape[0])
 
-        self.sample_steps = 1000
+        self.sample_steps = 100
 
         alphas = 1.0 - betas
         self.alphas_cumprod = np.cumprod(alphas, axis=0)
@@ -296,11 +296,11 @@ class GaussianDiffusion:
 
         prev_timestep_indices = np.append(indices[1:], 0)
 
-        print(indices)
-        print()
-        print(prev_timestep_indices)
-        print()
-        print(prev_timestep_indices[:-1] - indices[1:])
+        # print(indices)
+        # print()
+        # print(prev_timestep_indices)
+        # print()
+        # print(prev_timestep_indices[:-1] - indices[1:])
 
         def loop_body(step, args):
             img, indices, prev_timestep_indices, key = args
