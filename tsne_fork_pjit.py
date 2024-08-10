@@ -51,7 +51,8 @@ def test_convert():
 
     b, h, w, c = shape = 64, 32, 32, 4
 
-    rng = jax.random.split(rng, num=jax.local_device_count())
+    # rng = jax.random.split(rng, num=jax.local_device_count())
+    rng = jax.random.split(rng, num=jax.device_count())
 
     x = jnp.ones(shape)
 
@@ -61,7 +62,7 @@ def test_convert():
         if jax.process_index() == 0:
             print(device, device.coords, type(device.coords))
 
-    rng = convert_to_global_array(rng, x_sharding)
+    # rng = convert_to_global_array(rng, x_sharding)
 
 
 
