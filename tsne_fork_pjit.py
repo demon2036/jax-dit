@@ -160,7 +160,7 @@ def test_convert():
     # vae_params = FrozenDict(vae_params)
 
     test_sharding_jit = shard_map(
-        functools.partial(test_sharding, shape=shape, class_label=class_label, diffusion_sample=diffusion_sample,
+        functools.partial(test_sharding, shape=shape,  diffusion_sample=diffusion_sample,
                           vae=vae),
         mesh=mesh,
         in_specs=(PartitionSpec('data'), PartitionSpec(None),
