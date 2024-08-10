@@ -93,7 +93,7 @@ def test_convert():
 
         per_process_batch = b // jax.process_count()
         process_idx = jax.process_index()
-        rng = rng[per_process_batch * process_idx, per_process_batch * (process_idx + 1)]
+        rng = rng[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
 
         if jax.process_index() == 0:
             print(rng)
