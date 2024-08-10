@@ -93,9 +93,9 @@ def test_convert():
         # rng = test_sharding_jit(rng, x)
         rng = test_sharding_jit(rng)
 
-        # if jax.process_index() == 0:
-        #     print(rng)
-        #     print(rng.shape)
+        if jax.process_index() == 0:
+            print(rng)
+            print(rng.shape)
 
     """
     while True:
