@@ -31,7 +31,7 @@ def convert_to_global_array(x, x_sharding):
 
     for batch, device in zip(per_replica_batches_x, x_sharding.addressable_devices):
         if jax.process_index() == 0:
-            print(device.coords)
+            print(device,device.coords,type(device.coords))
     while True:
         pass
     return global_batch_array_x
