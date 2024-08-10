@@ -125,7 +125,7 @@ def test_convert():
 
     class_label = 2
 
-    b, h, w, c = shape = 1, 32, 32, 4
+    b, h, w, c = shape = 128, 32, 32, 4
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
     rng = jax.random.split(rng, num=jax.device_count())
@@ -171,18 +171,22 @@ def test_convert():
 
     test_sharding_jit = jax.jit(test_sharding_jit)
 
-    for i in tqdm.tqdm(range(20000)):
-        rng, numbers, = test_sharding_jit(rng, converted_jax_params,vae_params )
-        b, *_ = rng.shape
-        per_process_batch = b // jax.process_count()
-        process_idx = jax.process_index()
-        local_rng = rng[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
 
-        if jax.process_index() == 0:
-            print(rng.shape, numbers.shape)
-            print(local_rng)
-            print(local_rng.shape)
-            print(test_sharding_jit._cache_size())
+    for label in range(1000):
+        test_sharding_jit=functools.partial(test_sharding_jit,class_label=label)
+
+        for i in tqdm.tqdm(range(10)):
+            rng, numbers, = test_sharding_jit(rng, converted_jax_params,vae_params )
+            b, *_ = rng.shape
+            per_process_batch = b // jax.process_count()
+            process_idx = jax.process_index()
+            local_rng = rng[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
+
+            if jax.process_index() == 0:
+                print(rng.shape, numbers.shape)
+                print(local_rng)
+                print(local_rng.shape)
+                print(test_sharding_jit._cache_size())
 
 
 
