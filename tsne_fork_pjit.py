@@ -73,7 +73,7 @@ def test_sharding(rng, params, vae_params, class_label: int, diffusion_sample, v
     image = image / 2 + 0.5
 
     image = jnp.clip(image, 0, 1)
-    image=jnp.array(image,dtype=jnp.uint8)
+    # image=jnp.array(image,dtype=jnp.uint8)
 
     # image = einops.rearrange(image, 'b c h w->b h w c')
 
@@ -234,7 +234,7 @@ def test_convert():
             for img in images:
                 sink.write({
                     "__key__": "%010d" % i,
-                    "jpg.pyd": np.array(img,dtype=np.uint8),
+                    "jpg.pyd": np.array(img*255,dtype=np.uint8),
                     "cls": label,
                     # "json": label,
                 })
