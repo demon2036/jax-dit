@@ -141,9 +141,13 @@ def test_convert():
     vae_path = 'stabilityai/sd-vae-ft-mse'
     vae, vae_params = FlaxAutoencoderKL.from_pretrained(pretrained_model_name_or_path=vae_path, from_pt=True)
 
-    vae_params=jax.tree_util.tree_map(jnp.asarray,vae_params)
+    print(type(converted_jax_params), type(vae_params))
+    # while True:
+    #     pass
 
-    vae_params = FrozenDict(vae_params)
+    vae_params = jax.tree_util.tree_map(jnp.asarray, vae_params)
+
+    # vae_params = FrozenDict(vae_params)
 
     test_sharding_jit = shard_map(
         functools.partial(test_sharding, shape=shape, class_label=class_label, diffusion_sample=diffusion_sample,
