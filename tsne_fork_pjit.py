@@ -61,10 +61,10 @@ def test_convert():
     # jax.config.update('jax_threefry_partitionable', False)
     # f_exe = test_sharding_jit.lower(rng, x).compile()
     # print('Communicating?', 'collective-permute' in f_exe.as_text())
-
-    rng = test_sharding_jit(rng, x)
-    print(rng)
-    print(rng.shape)
+    for i in range(2):
+        rng = test_sharding_jit(rng, x)
+        print(rng)
+        print(rng.shape)
 
 
     """
