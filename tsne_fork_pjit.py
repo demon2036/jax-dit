@@ -198,17 +198,18 @@ def test_convert():
         # test_sharding_jit = functools.partial(test_sharding_jit, class_label=label)
 
         for i in tqdm.tqdm(range(20)):
-            rng, numbers = test_sharding_jit(rng, converted_jax_params, vae_params, label)
+            rng, images = test_sharding_jit(rng, converted_jax_params, vae_params, label)
             b, *_ = rng.shape
             per_process_batch = b // jax.process_count()
             process_idx = jax.process_index()
             local_rng = rng[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
 
             if jax.process_index() == 0:
-                print(rng.shape, numbers.shape)
+                print(rng.shape, images.shape)
                 print(local_rng)
                 print(local_rng.shape)
                 print(test_sharding_jit._cache_size())
+                show_image(images, i)
 
 
 def test_convert2():
@@ -265,7 +266,6 @@ def test_convert2():
                 print(local_rng)
                 print(local_rng.shape)
 
-                show_image(images, i)
 
                 # print(test_sharding_pmap._cache_size())
 
