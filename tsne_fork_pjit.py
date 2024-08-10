@@ -40,15 +40,15 @@ def test_convert():
     def mesh_sharding(pspec: PartitionSpec) -> NamedSharding:
         return NamedSharding(mesh, pspec)
 
-    rng = jax.random.split(rng, num=device_count)
+    # rng = jax.random.split(rng, num=device_count)
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
     x = jax.device_put(jnp.arange(24), x_sharding)
 
-    test_sharding_jit = jax.jit(test_sharding, in_shardings=(x_sharding,x_sharding), out_shardings=(x_sharding,x_sharding))
+    test_sharding_jit = jax.jit(test_sharding, in_shardings=(None,x_sharding), out_shardings=x_sharding)
 
 
-    jax.config.update('jax_threefry_partitionable', False)
+    jax.config.update('jax_threefry_partitionable', True)
     f_exe = test_sharding_jit.lower(rng,x).compile()
     print('Communicating?', 'collective-permute' in f_exe.as_text())
 
