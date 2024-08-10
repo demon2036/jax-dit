@@ -61,7 +61,7 @@ def test_convert():
         if jax.process_index() == 0:
             print(device, device.coords, type(device.coords))
 
-    rng = convert_to_global_array(rng, x_sharding)
+    rng = convert_to_global_array(x, x_sharding)
 
     while True:
         pass
