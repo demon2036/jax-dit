@@ -47,6 +47,11 @@ def test_convert():
     rng = test_sharding_jit(rng)
 
     print(rng)
+
+    f_exe = test_sharding_jit.lower(rng).compile()
+    print('Communicating?', 'collective-permute' in f_exe.as_text())
+
+
     """
     while True:
         pass
