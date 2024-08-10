@@ -24,6 +24,7 @@ import flax.linen as nn
 import os
 import matplotlib.pyplot as plt
 from prefetch import convert_to_global_array
+from torchvision.utils import save_image
 
 
 # rng = convert_to_global_array(rng, x_sharding)
@@ -92,7 +93,7 @@ def test_sharding2(rng, params, vae_params, class_label: int, diffusion_sample, 
     latent = latent / 0.18215
     image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
     print(image.shape)
-    image = einops.rearrange(image, 'b c h w->b h w c')
+    # image = einops.rearrange(image, 'b c h w->b h w c')
     # return
 
     return new_rng, image
@@ -194,7 +195,7 @@ def test_convert():
 
     test_sharding_jit = jax.jit(test_sharding_jit)
 
-    for label in range(1000):
+    for label in range(2, 1000):
         # test_sharding_jit = functools.partial(test_sharding_jit, class_label=label)
 
         for i in tqdm.tqdm(range(20)):
@@ -209,7 +210,7 @@ def test_convert():
                 print(local_rng)
                 print(local_rng.shape)
                 print(test_sharding_jit._cache_size())
-                show_image(images, i)
+                save_image_torch(images, i)
 
 
 def test_convert2():
@@ -251,7 +252,7 @@ def test_convert2():
     converted_jax_params, vae_params = replicate(converted_jax_params), replicate(vae_params)
     rng = shard_prng_key(rng)
 
-    for label in range(2,1000):
+    for label in range(2, 1000):
 
         for i in tqdm.tqdm(range(20)):
 
@@ -265,7 +266,6 @@ def test_convert2():
                 print(rng.shape, images.shape)
                 print(local_rng)
                 print(local_rng.shape)
-
 
                 # print(test_sharding_pmap._cache_size())
 
@@ -281,61 +281,14 @@ def show_image(img, i):
     plt.close()
 
 
-def sample_fn(diffusion_sample, params, ):
-    b, h, w, c = 1, 32, 32, 4
-    rng = jax.random.PRNGKey(42)
+def save_image_torch(img, i):
+    print(img.max(), img.min())
+    img = np.array(img[:32])
 
-    class_labels = [2]
+    os.makedirs('imgs', exist_ok=True)
 
-    n = len(class_labels)
-
-    z = jax.random.normal(key=rng, shape=(n, h, w, c))
-    z = jnp.concat([z, z], axis=0)
-    y = jnp.array(class_labels)
-    y_null = jnp.array([1000] * n)
-    y = jnp.concat([y, y_null], axis=0)
-    model_kwargs = dict(y=y, cfg_scale=7.5)
-
-    # z = jax.random.normal(key=rng, shape=(b, h, w, c))
-    # model_kwargs = dict()
-    # model_kwargs = dict(y=y)
-    latent = diffusion_sample.ddim_sample_loop(params, z.shape, z, clip_denoised=False, model_kwargs=model_kwargs,
-                                               key=rng, eta=0.0)
-    return latent
+    save_image(torch.from_numpy(img), f'imgs/{i}.png')
 
 
 if __name__ == "__main__":
-    # b, h, w, c = shape = 1, 32, 32, 4
-    #
-    # x = jnp.ones(shape)
-    # t = jnp.ones((b,), dtype=jnp.int32)
-    # y = jnp.ones((b,), dtype=jnp.int32)
-    # rng = jax.random.PRNGKey(42)
-    # model = DiT_S_2_jax(out_channels=c, labels=1000, image_size=h, condition=True)
-    # params = model.init(rng, x, t, y, train=True)['params']
-    # print(params.keys())
     test_convert()
-    # test_convert2()
-    # model, model_params = test_convert()
-
-    """
-        diffusion_sample = create_diffusion_sample(model=model, apply_fn=model.forward_with_cfg)
-    
-        vae_path = 'stabilityai/sd-vae-ft-mse'
-    
-        vae, vae_params = FlaxAutoencoderKL.from_pretrained(pretrained_model_name_or_path=vae_path, from_pt=True)
-    
-        vae_params = FrozenDict(vae_params)
-    
-    
-        @jax.jit
-        def vae_decode_image(latent, vae_params):
-            latent = latent / 0.18215
-            image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
-            return einops.rearrange(image, 'b c h w->b h w c')
-    
-    
-        latent = sample_fn(diffusion_sample, model_params, )
-        img = vae_decode_image(latent, vae_params)
-        show_image(img, 0)
-        """
