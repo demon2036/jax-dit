@@ -169,7 +169,7 @@ def test_convert():
 
     converted_jax_params = jax.tree_util.tree_map(jnp.asarray, converted_jax_params)
 
-    vae_path = 'stabilityai/sd-vae-ft-ema'
+    vae_path = 'stabilityai/sd-vae-ft-mse'
     vae, vae_params = FlaxAutoencoderKL.from_pretrained(pretrained_model_name_or_path=vae_path, from_pt=True)
 
     # vae_params = jax.device_put(vae_params, jax.local_devices()[0])

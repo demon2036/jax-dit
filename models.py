@@ -286,11 +286,11 @@ class DiT(DiTBase, nn.Module):
         self.x_embedder = PatchEmbed(**self.kwargs)
         self.t_embedder = TimestepEmbedding(**self.kwargs)
         self.y_embedder = LabelEmbedder(**self.kwargs)
-        self.pos_embed = jnp.expand_dims(get_2d_sincos_pos_embed(self.dim, self.num_patches[0]), 0)
+        # self.pos_embed = jnp.expand_dims(get_2d_sincos_pos_embed(self.dim, self.num_patches[0]), 0)
 
-        # self.pos_embed = self.param('pos_embed',
-        #                             lambda _: jnp.expand_dims(get_2d_sincos_pos_embed(self.dim, self.num_patches[0]),
-        #                                                       0))
+        self.pos_embed = self.param('pos_embed',
+                                    lambda _: jnp.expand_dims(get_2d_sincos_pos_embed(self.dim, self.num_patches[0]),
+                                                              0))
 
         block_fn = nn.remat(DiTBlock) if self.grad_ckpt else DiTBlock
         self.blocks = [block_fn(**self.kwargs) for _ in range(self.depth)]
@@ -346,7 +346,6 @@ class DiT(DiTBase, nn.Module):
 
         for block in self.blocks:
             x = block(x, c)
-
 
         x = self.final_layer(x, c)
         x = self.unpatchify(x)
