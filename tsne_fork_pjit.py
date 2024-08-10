@@ -1,4 +1,5 @@
 import functools
+from pathlib import Path
 
 import einops
 import numpy as np
@@ -25,6 +26,7 @@ import os
 import matplotlib.pyplot as plt
 from prefetch import convert_to_global_array
 from torchvision.utils import save_image
+import webdataset as wds
 
 
 # rng = convert_to_global_array(rng, x_sharding)
@@ -69,6 +71,10 @@ def test_sharding(rng, params, vae_params, class_label: int, diffusion_sample, v
     latent = latent / 0.18215
     image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
     image = image / 2 + 0.5
+
+    image = jnp.clip(image, 0, 1)
+    image=jnp.array(image,dtype=jnp.uint8)
+
     # image = einops.rearrange(image, 'b c h w->b h w c')
 
     return rng, image
@@ -93,7 +99,7 @@ def test_sharding2(rng, params, vae_params, class_label: int, diffusion_sample, 
     latent = latent / 0.18215
     image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
     print(image.shape)
-    # image = einops.rearrange(image, 'b c h w->b h w c')
+    image = einops.rearrange(image, 'b c h w->b h w c')
     # return
 
     return new_rng, image
@@ -195,6 +201,19 @@ def test_convert():
 
     test_sharding_jit = jax.jit(test_sharding_jit)
 
+    shard_dir_path = Path('shard_path')
+    shard_dir_path.mkdir(exist_ok=True)
+    shard_filename = str(shard_dir_path / 'shards-%05d.tar')
+
+    shard_size = int(200 * 1000 ** 2)
+
+    sink = wds.ShardWriter(
+        shard_filename,
+        maxcount=1024,
+        maxsize=3e10,
+        # maxsize=shard_size,
+    )
+
     for label in range(2, 1000):
         # test_sharding_jit = functools.partial(test_sharding_jit, class_label=label)
 
@@ -211,6 +230,14 @@ def test_convert():
                 print(local_rng.shape)
                 print(test_sharding_jit._cache_size())
                 save_image_torch(images, i)
+
+            for img in images:
+                sink.write({
+                    "__key__": "%010d" % i,
+                    "jpg.pyd": np.array(img,dtype=np.uint8),
+                    "cls": label,
+                    # "json": label,
+                })
 
 
 def test_convert2():
@@ -282,11 +309,12 @@ def show_image(img, i):
 
 
 def save_image_torch(img, i):
+
     print(img.max(), img.min())
     img = np.array(img[:32])
-
+    img = einops.rearrange(img, 'b c h w->b h w c')
     os.makedirs('imgs', exist_ok=True)
-    img=torch.from_numpy(img)
+    img = torch.from_numpy(img)
     print(img.shape)
     save_image(img, f'imgs/{i}.png')
 
