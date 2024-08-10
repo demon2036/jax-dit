@@ -27,15 +27,21 @@ def t_print(p, x):
     print(p)
 
 
-def test_sharding(rng, shape):
+def test_sharding(rng, shape, class_label: int,cfg_scale:float=1.5):
     new_rng, local_rng = jax.random.split(rng[0], 2)
-    # # print(rng.shape, )
-    #
-    numbers = jax.random.normal(local_rng, shape)
-    #
+    # numbers = jax.random.normal(local_rng, shape)
+
+    class_labels = jnp.ones((shape[0],), dtype=jnp.int32) * class_label
+    z = jax.random.normal(key=rng, shape=shape)
+    z = jnp.concat([z, z], axis=0)
+    y = jnp.array(class_labels)
+    y_null = jnp.array([1000] * shape[0])
+    y = jnp.concat([y, y_null], axis=0)
+    model_kwargs = dict(y=y, cfg_scale=cfg_scale)
+
     rng = rng.at[0].set(new_rng)
 
-    return rng,numbers
+    return rng, z
 
 
 def test_convert():
@@ -51,6 +57,8 @@ def test_convert():
     def mesh_sharding(pspec: PartitionSpec) -> NamedSharding:
         return NamedSharding(mesh, pspec)
 
+    class_label = 2
+
     b, h, w, c = shape = 64, 32, 32, 4
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
@@ -63,9 +71,6 @@ def test_convert():
     for device in x_sharding.addressable_devices:
         if jax.process_index() == 0:
             print(device, device.coords, type(device.coords))
-
-
-
 
     # rng = convert_to_global_array(rng, x_sharding)
 
@@ -84,14 +89,16 @@ def test_convert():
 
     # test_sharding_jit = jax.jit(test_sharding, in_shardings= x_sharding, out_shardings=x_sharding)
 
-    test_sharding_jit = shard_map(functools.partial(test_sharding,shape=shape), mesh=mesh, in_specs=PartitionSpec('data'),
+    test_sharding_jit = shard_map(functools.partial(test_sharding, shape=shape, class_label=class_label),
+                                  mesh=mesh,
+                                  in_specs=PartitionSpec('data'),
                                   out_specs=PartitionSpec('data'), )
 
     # jax.config.update('jax_threefry_partitionable', False)
     # f_exe = test_sharding_jit.lower(rng, x).compile()
     # print('Communicating?', 'collective-permute' in f_exe.as_text())
     for i in range(2):
-        rng,numbers = test_sharding_jit(rng)
+        rng, numbers = test_sharding_jit(rng)
         # rng = test_sharding_jit(rng)
 
         b, *_ = rng.shape
@@ -101,7 +108,7 @@ def test_convert():
         local_rng = rng[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
 
         # if jax.process_index() == 0:
-        print(rng.shape,numbers.shape)
+        print(rng.shape, numbers.shape)
         print(local_rng)
         print(local_rng.shape)
 
