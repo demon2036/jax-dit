@@ -5,6 +5,7 @@ from diffusers import FlaxAutoencoderKL
 from flax.core import FrozenDict
 from flax.training.common_utils import shard_prng_key
 from jax.experimental import mesh_utils
+from jax.experimental.shard_map import shard_map
 from jax.sharding import Mesh, NamedSharding, PartitionSpec
 
 from convert_torch_to_jax import convert_torch_to_jax
@@ -21,6 +22,9 @@ import matplotlib.pyplot as plt
 
 def t_print(p, x):
     print(p)
+
+
+jax.pmap()
 
 
 def test_sharding(rng, x):
@@ -45,7 +49,9 @@ def test_convert():
 
     x = jax.device_put(jnp.arange(24), x_sharding)
 
-    test_sharding_jit = jax.jit(test_sharding, in_shardings=(None, x_sharding), out_shardings=x_sharding)
+    # test_sharding_jit = jax.jit(test_sharding, in_shardings=(None, x_sharding), out_shardings=x_sharding)
+
+    test_sharding_jit = shard_map(test_sharding,mesh=mesh, in_shardings=(x_sharding, x_sharding), out_shardings=x_sharding)
 
     jax.config.update('jax_threefry_partitionable', False)
     f_exe = test_sharding_jit.lower(rng, x).compile()
