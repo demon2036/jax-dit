@@ -25,7 +25,7 @@ def t_print(p, x):
     print(p)
 
 
-def test_sharding(rng,x):
+def test_sharding(rng, x):
     new_rng, local_rng = jax.random.split(rng[0], 2)
     # # print(rng.shape, )
     #
@@ -64,8 +64,6 @@ def test_convert():
 
     # rng = convert_to_global_array(rng, x_sharding)
 
-
-
     # print(x_sharding.addressable_devices)
     # if jax.process_index() == 0:
     #     print(x_sharding.addressable_devices)
@@ -84,14 +82,18 @@ def test_convert():
     test_sharding_jit = shard_map(test_sharding, mesh=mesh, in_specs=PartitionSpec('data'),
                                   out_specs=PartitionSpec('data'), )
 
-
-
     # jax.config.update('jax_threefry_partitionable', False)
     # f_exe = test_sharding_jit.lower(rng, x).compile()
     # print('Communicating?', 'collective-permute' in f_exe.as_text())
     for i in range(2):
         rng = test_sharding_jit(rng, x)
         # rng = test_sharding_jit(rng)
+
+        b, *_ = rng.shape
+
+        per_process_batch = b // jax.process_count()
+        process_idx = jax.process_index()
+        rng = rng[per_process_batch * process_idx, per_process_batch * (process_idx + 1)]
 
         if jax.process_index() == 0:
             print(rng)
