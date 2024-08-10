@@ -151,7 +151,7 @@ def test_convert():
 
     test_sharding_jit = jax.jit(test_sharding_jit)
     print('Here We Go!')
-    for i in range(2):
+    for i in range(1):
         rng, numbers = test_sharding_jit(rng, converted_jax_params, vae_params)
         b, *_ = rng.shape
         per_process_batch = b // jax.process_count()
