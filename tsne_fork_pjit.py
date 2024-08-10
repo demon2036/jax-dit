@@ -143,11 +143,11 @@ def test_convert():
 
     test_sharding_jit = shard_map(functools.partial(test_sharding, shape=shape, class_label=class_label,diffusion_sample=diffusion_sample,vae=vae ),
                                   mesh=mesh,
-                                  in_specs=(PartitionSpec('data'), PartitionSpec(None),),
+                                  in_specs=(PartitionSpec('data'), PartitionSpec(None),PartitionSpec(None)),
                                   out_specs=PartitionSpec('data'), )
 
     test_sharding_jit = jax.jit(test_sharding_jit)
-
+    print('Here We Go!')
     for i in range(2):
         rng, numbers = test_sharding_jit(rng, converted_jax_params,vae_params)
         b, *_ = rng.shape
