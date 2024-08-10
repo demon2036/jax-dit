@@ -54,9 +54,9 @@ def test_convert():
 
     rng = convert_to_global_array(rng, x_sharding)
 
-    print(rng.shape)
+    print()
 
-    print(rng.sharding, )
+    print(rng.shape,rng.sharding.addressable_devices, )
 
     b, h, w, c = shape = 64, 32, 32, 4
 
