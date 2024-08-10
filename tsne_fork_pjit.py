@@ -63,19 +63,18 @@ def test_convert():
 
     rng = convert_to_global_array(x, x_sharding)
 
-    while True:
-        pass
+
 
     # print(x_sharding.addressable_devices)
-    if jax.process_index() == 0:
-        print(x_sharding.addressable_devices)
-        print('\n' * 2)
-        print(set(mesh.devices.flat))
-
-    if jax.process_index() == 0:
-        print()
-        print(rng.shape, rng.sharding.addressable_devices, )
-        print(mesh.devices)
+    # if jax.process_index() == 0:
+    #     print(x_sharding.addressable_devices)
+    #     print('\n' * 2)
+    #     print(set(mesh.devices.flat))
+    #
+    # if jax.process_index() == 0:
+    #     print()
+    #     print(rng.shape, rng.sharding.addressable_devices, )
+    #     print(mesh.devices)
 
     # x = jax.device_put(jnp.ones(shape), x_sharding)
 
@@ -83,6 +82,8 @@ def test_convert():
 
     test_sharding_jit = shard_map(test_sharding, mesh=mesh, in_specs=PartitionSpec('data'),
                                   out_specs=PartitionSpec('data'), )
+
+
 
     # jax.config.update('jax_threefry_partitionable', False)
     # f_exe = test_sharding_jit.lower(rng, x).compile()
