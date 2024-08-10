@@ -1,3 +1,5 @@
+import functools
+
 import einops
 import numpy as np
 import torch
@@ -25,15 +27,15 @@ def t_print(p, x):
     print(p)
 
 
-def test_sharding(rng, x):
+def test_sharding(rng, shape):
     new_rng, local_rng = jax.random.split(rng[0], 2)
     # # print(rng.shape, )
     #
-    numbers = jax.random.uniform(local_rng, x.shape)
+    numbers = jax.random.normal(local_rng, shape)
     #
     rng = rng.at[0].set(new_rng)
 
-    return rng
+    return rng,numbers
 
 
 def test_convert():
@@ -62,6 +64,9 @@ def test_convert():
         if jax.process_index() == 0:
             print(device, device.coords, type(device.coords))
 
+
+
+
     # rng = convert_to_global_array(rng, x_sharding)
 
     # print(x_sharding.addressable_devices)
@@ -79,14 +84,14 @@ def test_convert():
 
     # test_sharding_jit = jax.jit(test_sharding, in_shardings= x_sharding, out_shardings=x_sharding)
 
-    test_sharding_jit = shard_map(test_sharding, mesh=mesh, in_specs=PartitionSpec('data'),
+    test_sharding_jit = shard_map(functools.partial(test_sharding,shape=shape), mesh=mesh, in_specs=PartitionSpec('data'),
                                   out_specs=PartitionSpec('data'), )
 
     # jax.config.update('jax_threefry_partitionable', False)
     # f_exe = test_sharding_jit.lower(rng, x).compile()
     # print('Communicating?', 'collective-permute' in f_exe.as_text())
     for i in range(2):
-        rng = test_sharding_jit(rng, x)
+        rng,numbers = test_sharding_jit(rng, x)
         # rng = test_sharding_jit(rng)
 
         b, *_ = rng.shape
@@ -96,6 +101,7 @@ def test_convert():
         local_rng = rng[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
 
         # if jax.process_index() == 0:
+        print(rng.shape,numbers.shape)
         print(local_rng)
         print(local_rng.shape)
 
