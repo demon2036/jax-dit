@@ -29,7 +29,7 @@ def test_sharding(rng, x):
 
     numbers = jax.random.uniform(local_rng, x.shape)
 
-    rng[0]=local_rng
+    rng=rng.at[0].set(local_rng)
 
     return rng
 
