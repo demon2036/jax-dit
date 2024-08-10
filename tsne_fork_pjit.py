@@ -47,7 +47,6 @@ def t_print(p, x):
 
 def test_sharding(rng, params, vae_params, diffusion_sample, vae, shape, class_label: int, cfg_scale: float = 1.5):
     new_rng, local_rng, sample_rng = jax.random.split(rng[0], 3)
-    # numbers = jax.random.normal(local_rng, shape)
 
     class_labels = jnp.ones((shape[0],), dtype=jnp.int32) * class_label
     z = jax.random.normal(key=local_rng, shape=shape)
@@ -65,7 +64,7 @@ def test_sharding(rng, params, vae_params, diffusion_sample, vae, shape, class_l
     # image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
     # return einops.rearrange(image, 'b c h w->b h w c')
 
-    return rng, latent, params, vae_params
+    return rng, latent
 
 
 def create_state():
@@ -120,7 +119,7 @@ def test_convert():
 
     class_label = 2
 
-    b, h, w, c = shape = 8, 32, 32, 4
+    b, h, w, c = shape = 1, 32, 32, 4
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
     rng = jax.random.split(rng, num=jax.device_count())
@@ -141,6 +140,10 @@ def test_convert():
     vae_path = 'stabilityai/sd-vae-ft-mse'
     vae, vae_params = FlaxAutoencoderKL.from_pretrained(pretrained_model_name_or_path=vae_path, from_pt=True)
 
+    vae_params = jax.device_put(vae_params, jax.local_devices()[0])
+
+    print(converted_jax_params['x_embedder']['proj']['kernel'].devices())
+    print(vae_params['decoder']['conv_in']['bias'].devices())
     print(type(converted_jax_params), type(vae_params))
     # while True:
     #     pass
@@ -154,21 +157,22 @@ def test_convert():
                           vae=vae),
         mesh=mesh,
         in_specs=(PartitionSpec('data'), PartitionSpec(None), PartitionSpec(None)),
-        out_specs=(PartitionSpec('data'), PartitionSpec('data'), PartitionSpec(None), PartitionSpec(None)), )
+        out_specs=PartitionSpec('data'))
 
     test_sharding_jit = jax.jit(test_sharding_jit)
-    print('Here We Go!')
+
     for i in range(2):
-        rng, numbers, converted_jax_params, vae_params = test_sharding_jit(rng, converted_jax_params, vae_params)
+        print('Here We Go!')
+        rng, numbers, = test_sharding_jit(rng, converted_jax_params, vae_params)
         b, *_ = rng.shape
         per_process_batch = b // jax.process_count()
         process_idx = jax.process_index()
         local_rng = rng[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
 
         # if jax.process_index() == 0:
-        print(rng.shape, numbers.shape)
-        print(local_rng)
-        print(local_rng.shape)
+        # print(rng.shape, numbers.shape)
+        # print(local_rng)
+        # print(local_rng.shape)
 
 
 def show_image(img, i):
