@@ -24,23 +24,19 @@ def convert_to_global_array(x, x_sharding):
         ]
     )
 
-
-
-    s=x_sharding.addressable_devices
-
+    s = x_sharding.addressable_devices
 
     for batch, device in zip(per_replica_batches_x, x_sharding.addressable_devices):
         if jax.process_index() == 0:
-            print(device,device.coords,type(device.coords))
-
+            print(device, device.coords, type(device.coords))
 
     print()
 
-    s = sorted(x_sharding.addressable_devices,key=lambda x:x.coords[0])
+    s = sorted(x_sharding.addressable_devices, key=lambda x: x.coords[0])
 
     for batch, device in zip(per_replica_batches_x, s):
         if jax.process_index() == 0:
-            print(device,device.coords,type(device.coords))
+            print(device, device.coords, type(device.coords))
 
     while True:
         pass
