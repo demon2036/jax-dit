@@ -56,13 +56,14 @@ def test_convert():
 
     print()
 
-    print(rng.shape,rng.sharding.addressable_devices, )
+    print(rng.shape, rng.sharding.addressable_devices, )
 
     b, h, w, c = shape = 64, 32, 32, 4
 
     # x = jax.device_put(jnp.ones(shape), x_sharding)
 
     # test_sharding_jit = jax.jit(test_sharding, in_shardings=(None, x_sharding), out_shardings=x_sharding)
+    print(mesh.devices)
 
     test_sharding_jit = shard_map(test_sharding, mesh=mesh, in_specs=PartitionSpec('data'),
                                   out_specs=PartitionSpec('data'), )
