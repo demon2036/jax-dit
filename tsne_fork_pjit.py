@@ -31,7 +31,7 @@ def test_sharding(rng, x):
 
     rng=rng.at[0].set(local_rng)
 
-    return rng
+    return local_rng
 
 
 def test_convert():
