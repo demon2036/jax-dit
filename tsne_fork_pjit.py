@@ -62,15 +62,15 @@ def test_sharding(rng, params,vae_params, diffusion_sample, vae, shape, class_la
     latent = diffusion_sample.ddim_sample_loop(params, z.shape, z, clip_denoised=False, model_kwargs=model_kwargs,
                                                key=sample_rng, eta=0.0)
 
-    # latent,_ = jnp.split(latent, axis=0)
+    latent,_ = jnp.split(latent,2, axis=0)
 
     latent = latent / 0.18215
-    # image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
-    # print(image.shape)
-    # image=einops.rearrange(image, 'b c h w->b h w c')
+    image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
+    print(image.shape)
+    image=einops.rearrange(image, 'b c h w->b h w c')
     # return
 
-    return rng, latent
+    return rng, image
 
 
 def create_state():
@@ -93,7 +93,7 @@ def create_state():
     y = jnp.concat([y, y_null], axis=0)
 
     model = DiT_S_2_jax(out_channels=c, labels=1000, image_size=h, condition=True)
-    params = model.init(rng, x, t, y, train=True)['params']
+    # params = model.init(rng, x, t, y, train=True)['params']
 
     # model.apply({'params': params}, x, t, y)
 
