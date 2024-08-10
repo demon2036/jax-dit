@@ -28,7 +28,10 @@ def test_sharding(rng, x):
     local_rng = rng[0]
 
     numbers = jax.random.uniform(local_rng, x.shape)
-    return local_rng
+
+    rng[0]=local_rng
+
+    return rng
 
 
 def test_convert():
