@@ -27,9 +27,11 @@ def t_print(p, x):
 def test_sharding(rng, x):
     local_rng = rng[0]
 
+    rng, local_rng = jnp.split(rng)
+
     numbers = jax.random.uniform(local_rng, x.shape)
 
-    rng = rng.at[0].set(local_rng)
+    # rng = rng.at[0].set(local_rng)
 
     return rng
 
@@ -65,7 +67,6 @@ def test_convert():
         rng = test_sharding_jit(rng, x)
         print(rng)
         print(rng.shape)
-
 
     """
     while True:
