@@ -27,7 +27,7 @@ def t_print(p, x):
 def test_sharding(rng, x):
     local_rng = rng[0]
 
-    numbers = jax.random.uniform(rng, x.shape)
+    numbers = jax.random.uniform(local_rng, x.shape)
     return local_rng
 
 
