@@ -65,11 +65,11 @@ def test_convert():
 
     # x = jax.device_put(jnp.ones(shape), x_sharding)
 
-    test_sharding_jit = jax.jit(test_sharding, in_shardings= x_sharding, out_shardings=x_sharding)
+    # test_sharding_jit = jax.jit(test_sharding, in_shardings= x_sharding, out_shardings=x_sharding)
     print(mesh.devices)
 
-    # test_sharding_jit = shard_map(test_sharding, mesh=mesh, in_specs=PartitionSpec('data'),
-    #                               out_specs=PartitionSpec('data'), )
+    test_sharding_jit = shard_map(test_sharding, mesh=mesh, in_specs=PartitionSpec('data'),
+                                  out_specs=PartitionSpec('data'), )
 
     # jax.config.update('jax_threefry_partitionable', False)
     # f_exe = test_sharding_jit.lower(rng, x).compile()
