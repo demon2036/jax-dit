@@ -51,7 +51,7 @@ def test_convert():
     rng = jax.random.split(rng, num=jax.local_device_count())
 
     b, h, w, c = shape = 64, 32, 32, 4
-    x = jax.device_put(jnp.ones(shape))
+    x = jnp.ones(shape)
 
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
