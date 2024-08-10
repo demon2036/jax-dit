@@ -48,20 +48,19 @@ def test_convert():
     def mesh_sharding(pspec: PartitionSpec) -> NamedSharding:
         return NamedSharding(mesh, pspec)
 
+    b, h, w, c = shape = 64, 32, 32, 4
+
     rng = jax.random.split(rng, num=jax.local_device_count())
 
-    b, h, w, c = shape = 64, 32, 32, 4
-    x = jnp.ones(shape)
+    # x = jnp.ones(shape)
 
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
-    rng = convert_to_global_array(x, x_sharding)
+    rng = convert_to_global_array(rng, x_sharding)
 
     print()
 
     print(rng.shape, rng.sharding.addressable_devices, )
-
-
 
     # x = jax.device_put(jnp.ones(shape), x_sharding)
 
