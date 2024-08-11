@@ -53,9 +53,13 @@ def t_print(p, x):
 
 
 def test_sharding(rng, params, vae_params, class_label: int, diffusion_sample, vae, shape, cfg_scale: float = 1.5):
-    new_rng, local_rng, sample_rng = jax.random.split(rng[0], 3)
+    new_rng, local_rng, sample_rng,class_rng = jax.random.split(rng[0], 4)
 
     class_labels = jnp.ones((shape[0],), dtype=jnp.int32) * class_label
+
+    class_labels=jax.random.randint(class_rng,(shape[0],),0,999)
+
+
     z = jax.random.normal(key=local_rng, shape=shape)
     z = jnp.concat([z, z], axis=0)
     y = jnp.array(class_labels)
@@ -79,7 +83,7 @@ def test_sharding(rng, params, vae_params, class_label: int, diffusion_sample, v
 
     image = einops.rearrange(image, 'b c h w->b h w c')
 
-    return rng, image
+    return rng, image,class_labels
 
 
 def create_state():
@@ -197,7 +201,7 @@ def test_convert():
         # test_sharding_jit = functools.partial(test_sharding_jit, class_label=label)
 
         for i in tqdm.tqdm(range(4)):
-            rng, images = test_sharding_jit(rng, converted_jax_params, vae_params, label)
+            rng, images,class_labels = test_sharding_jit(rng, converted_jax_params, vae_params, label)
             b, *_ = rng.shape
             per_process_batch = b // jax.process_count()
             process_idx = jax.process_index()
@@ -210,21 +214,21 @@ def test_convert():
                 print(test_sharding_jit._cache_size())
                 save_image_torch(images, i)
 
-            def thread_write(images, sink):
+            def thread_write(images,class_labels, sink):
                 nonlocal counter
                 images = images * 255
 
-                for img in images:
+                for img,cls_label in zip(images,class_labels):
                     sink.write({
                         "__key__": "%010d" % counter,
-                        "ppm": PIL.Image.fromarray(np.array(img, dtype=np.uint8)),
-                        "cls": label,
+                        "jpg": PIL.Image.fromarray(np.array(img, dtype=np.uint8)),
+                        "cls": int(cls_label),
                         # "json": label,
                     })
                     counter += 1
                 print(counter)
 
-            threading.Thread(target=thread_write, args=(images, sink)).start()
+            threading.Thread(target=thread_write, args=(images,class_labels, sink)).start()
 
 
 def show_image(img, i):
