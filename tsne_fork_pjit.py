@@ -134,7 +134,7 @@ def test_convert():
 
     class_label = 2
 
-    b, h, w, c = shape = 128, 32, 32, 4
+    b, h, w, c = shape = 2, 32, 32, 4
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
     rng = jax.random.split(rng, num=jax.device_count())
@@ -191,10 +191,12 @@ def test_convert():
         # maxsize=shard_size,
     )
 
-    for label in range(2, 1000):
+    counter = 0
+
+    for label in range(2, 3):
         # test_sharding_jit = functools.partial(test_sharding_jit, class_label=label)
 
-        for i in tqdm.tqdm(range(20)):
+        for i in tqdm.tqdm(range(4)):
             rng, images = test_sharding_jit(rng, converted_jax_params, vae_params, label)
             b, *_ = rng.shape
             per_process_batch = b // jax.process_count()
@@ -208,16 +210,21 @@ def test_convert():
                 print(test_sharding_jit._cache_size())
                 save_image_torch(images, i)
 
-            def thread_write(images,sink):
+            def thread_write(images, sink):
+                nonlocal counter
+                images = images * 255
+
                 for img in images:
                     sink.write({
-                        "__key__": "%010d" % i,
-                        "jpg": PIL.Image.fromarray(np.array(img * 255, dtype=np.uint8)),
+                        "__key__": "%010d" % counter,
+                        "jpg": PIL.Image.fromarray(np.array(img, dtype=np.uint8)),
                         "cls": label,
                         # "json": label,
                     })
+                    counter += 1
+                print(counter)
 
-            threading.Thread(target=thread_write, args=(images,sink)).start()
+            threading.Thread(target=thread_write, args=(images, sink)).start()
 
 
 def show_image(img, i):
