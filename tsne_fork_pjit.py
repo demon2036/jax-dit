@@ -146,7 +146,7 @@ def test_convert():
 
     class_label = 2
 
-    b, h, w, c = shape = 1, 32, 32, 4
+    b, h, w, c = shape = 128, 32, 32, 4
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
     rng = jax.random.split(rng, num=jax.device_count())
@@ -197,27 +197,6 @@ def test_convert():
 
     counter = 0
 
-    # def thread_send():
-    #     files = glob.glob('shard_path/*.tar')
-    #     files.sort(key=lambda x: os.path.getctime(x), )
-    #
-    #     if len(files) == 0:
-    #         raise NotImplemented()
-    #     elif len(files) == 1:
-    #         base_name = os.path.basename(files[0])
-    #     else:
-    #         os.remove(files[0])
-    #         base_name = os.path.basename(files[1])
-    #
-    #     dst = 'shard_path2'
-    #     os.makedirs(dst, exist_ok=True)
-    #     print(base_name, files)
-    #     with wds.gopen(files[0], "rb") as fp_local:
-    #         data_to_write = fp_local.read()
-    #
-    #     with wds.gopen(f'{dst}/{base_name}', "wb") as fp:
-    #         fp.write(data_to_write)
-    #         fp.flush()
 
     def thread_write(images, class_labels, sink, label, send_file=False):
         nonlocal counter
@@ -237,7 +216,7 @@ def test_convert():
             # sink.next_stream()
             # thread_send()
 
-    data_per_shard = 4
+    data_per_shard = 1024
     per_process_generate_data = b * jax.local_device_count()
     assert data_per_shard % per_process_generate_data == 0
     iter_per_shard = data_per_shard // per_process_generate_data
