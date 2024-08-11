@@ -36,12 +36,13 @@ def download_model(model_name):
     assert model_name in pretrained_models
     # local_path = f'pretrained_models/{model_name}'
     download_path='/root/pretrained_models'
+    # download_path = 'ref/pretrained_models'
     local_path = f'{download_path}/{model_name}'
     if not os.path.isfile(local_path):
         os.makedirs(download_path, exist_ok=True)
         web_path = f'https://dl.fbaipublicfiles.com/DiT/models/{model_name}'
         download_url(web_path, download_path)
-    model = torch.load(local_path, map_location=lambda storage, loc: storage)
+    model = torch.load(local_path, map_location=lambda storage, loc: storage,weights_only=True)
     return model
 
 

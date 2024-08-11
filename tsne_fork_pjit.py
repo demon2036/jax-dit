@@ -1,4 +1,5 @@
 import functools
+import glob
 import threading
 from pathlib import Path
 
@@ -31,34 +32,41 @@ from torchvision.utils import save_image
 import webdataset as wds
 
 
-# rng = convert_to_global_array(rng, x_sharding)
+def send_file(keep_files=5):
+    files = glob.glob('shard_path/*.tar')
+    files.sort(key=lambda x: os.path.getctime(x), )
 
-# print(x_sharding.addressable_devices)
-# if jax.process_index() == 0:
-#     print(x_sharding.addressable_devices)
-#     print('\n' * 2)
-#     print(set(mesh.devices.flat))
-#
-# if jax.process_index() == 0:
-#     print()
-#     print(rng.shape, rng.sharding.addressable_devices, )
-#     print(mesh.devices)
+    if len(files) == 0:
+        raise NotImplemented()
+    elif len(files) <= keep_files:
+        pass
+    else:
+        for file in files[:-keep_files]:
+            base_name = os.path.basename(file)
+            dst = 'shard_path2'
+            os.makedirs(dst, exist_ok=True)
+            print(base_name, files)
 
-# x = jax.device_put(jnp.ones(shape), x_sharding)
+            def send_data_thread(src_file, dst_file):
+                with wds.gopen(src_file, "rb") as fp_local:
+                    data_to_write = fp_local.read()
 
-# test_sharding_jit = jax.jit(test_sharding, in_shardings= x_sharding, out_shardings=x_sharding)
+                with wds.gopen(f'{dst_file}/{base_name}', "wb") as fp:
+                    fp.write(data_to_write)
+                    fp.flush()
 
-def t_print(p, x):
-    print(p)
+                os.remove(src_file)
+
+            threading.Thread(target=send_data_thread, args=(file, dst)).start()
 
 
 def test_sharding(rng, params, vae_params, class_label: int, diffusion_sample, vae, shape, cfg_scale: float = 1.5):
-    new_rng, local_rng, sample_rng,class_rng = jax.random.split(rng[0], 4)
+    new_rng, local_rng, sample_rng, class_rng = jax.random.split(rng[0], 4)
 
-    class_labels = jnp.ones((shape[0],), dtype=jnp.int32) * class_label
+    # class_labels = jnp.ones((shape[0],), dtype=jnp.int32) * class_label
 
-    class_labels=jax.random.randint(class_rng,(shape[0],),0,999)
-
+    class_labels = jax.random.randint(class_rng, (shape[0],), 0, 999)
+    print(class_labels)
 
     z = jax.random.normal(key=local_rng, shape=shape)
     z = jnp.concat([z, z], axis=0)
@@ -83,7 +91,7 @@ def test_sharding(rng, params, vae_params, class_label: int, diffusion_sample, v
 
     image = einops.rearrange(image, 'b c h w->b h w c')
 
-    return rng, image,class_labels
+    return rng, image, class_labels
 
 
 def create_state():
@@ -138,7 +146,7 @@ def test_convert():
 
     class_label = 2
 
-    b, h, w, c = shape = 128, 32, 32, 4
+    b, h, w, c = shape = 1, 32, 32, 4
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
     rng = jax.random.split(rng, num=jax.device_count())
@@ -185,50 +193,83 @@ def test_convert():
     shard_dir_path = Path('shard_path')
     shard_dir_path.mkdir(exist_ok=True)
     shard_filename = str(shard_dir_path / 'shards-%05d.tar')
-
-    shard_size = int(200 * 1000 ** 2)
-
-    sink = wds.ShardWriter(
-        shard_filename,
-        maxcount=512,
-        maxsize=3e10,
-        # maxsize=shard_size,
-    )
+    print(shard_filename)
 
     counter = 0
 
-    for label in range(2, 3):
-        # test_sharding_jit = functools.partial(test_sharding_jit, class_label=label)
+    # def thread_send():
+    #     files = glob.glob('shard_path/*.tar')
+    #     files.sort(key=lambda x: os.path.getctime(x), )
+    #
+    #     if len(files) == 0:
+    #         raise NotImplemented()
+    #     elif len(files) == 1:
+    #         base_name = os.path.basename(files[0])
+    #     else:
+    #         os.remove(files[0])
+    #         base_name = os.path.basename(files[1])
+    #
+    #     dst = 'shard_path2'
+    #     os.makedirs(dst, exist_ok=True)
+    #     print(base_name, files)
+    #     with wds.gopen(files[0], "rb") as fp_local:
+    #         data_to_write = fp_local.read()
+    #
+    #     with wds.gopen(f'{dst}/{base_name}', "wb") as fp:
+    #         fp.write(data_to_write)
+    #         fp.flush()
 
-        for i in tqdm.tqdm(range(4)):
-            rng, images,class_labels = test_sharding_jit(rng, converted_jax_params, vae_params, label)
+    def thread_write(images, class_labels, sink, label, send_file=False):
+        nonlocal counter
+        images = images * 255
+
+        for img, cls_label in zip(images, class_labels):
+            sink.write({
+                "__key__": "%010d" % counter,
+                "jpg": PIL.Image.fromarray(np.array(img, dtype=np.uint8)),
+                "cls": int(cls_label),
+            })
+            counter += 1
+        print(counter)
+
+        if send_file:
+            sink.shard = jax.process_index() + label * jax.process_count()
+            # sink.next_stream()
+            # thread_send()
+
+    data_per_shard = 4
+    per_process_generate_data = b * jax.local_device_count()
+    assert data_per_shard % per_process_generate_data == 0
+    iter_per_shard = data_per_shard // per_process_generate_data
+
+    sink = wds.ShardWriter(
+        shard_filename,
+        maxcount=data_per_shard,
+        maxsize=3e10,
+        start_shard=jax.process_index()
+        # maxsize=shard_size,
+    )
+
+    for label in range(0, 1000):
+
+        for i in tqdm.tqdm(range(iter_per_shard)):
+            rng, images, class_labels = test_sharding_jit(rng, converted_jax_params, vae_params, label)
             b, *_ = rng.shape
             per_process_batch = b // jax.process_count()
             process_idx = jax.process_index()
             local_rng = rng[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
 
-            if jax.process_index() == 0:
-                print(rng.shape, images.shape)
-                print(local_rng)
-                print(local_rng.shape)
-                print(test_sharding_jit._cache_size())
-                save_image_torch(images, i)
-
-            def thread_write(images,class_labels, sink):
-                nonlocal counter
-                images = images * 255
-
-                for img,cls_label in zip(images,class_labels):
-                    sink.write({
-                        "__key__": "%010d" % counter,
-                        "jpg": PIL.Image.fromarray(np.array(img, dtype=np.uint8)),
-                        "cls": int(cls_label),
-                        # "json": label,
-                    })
-                    counter += 1
-                print(counter)
-
-            threading.Thread(target=thread_write, args=(images,class_labels, sink)).start()
+            # if jax.process_index() == 0:
+            #     print(rng.shape, images.shape)
+            #     print(local_rng)
+            #     print(local_rng.shape)
+            #     print(test_sharding_jit._cache_size())
+            #     save_image_torch(images, i)
+            print(i, iter_per_shard)
+            threading.Thread(target=thread_write,
+                             args=(
+                                 images, class_labels, sink, label, True if i == iter_per_shard - 1 else False)).start()
+        send_file()
 
 
 def show_image(img, i):
