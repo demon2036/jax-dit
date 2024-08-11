@@ -217,7 +217,7 @@ def test_convert():
                 for img in images:
                     sink.write({
                         "__key__": "%010d" % counter,
-                        "jpg": PIL.Image.fromarray(np.array(img, dtype=np.uint8)),
+                        "ppm": PIL.Image.fromarray(np.array(img, dtype=np.uint8)),
                         "cls": label,
                         # "json": label,
                     })
