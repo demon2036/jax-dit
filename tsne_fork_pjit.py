@@ -134,7 +134,7 @@ def test_convert():
 
     class_label = 2
 
-    b, h, w, c = shape = 2, 32, 32, 4
+    b, h, w, c = shape = 128, 32, 32, 4
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
     rng = jax.random.split(rng, num=jax.device_count())
