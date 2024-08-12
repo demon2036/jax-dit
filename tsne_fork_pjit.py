@@ -1,3 +1,4 @@
+import argparse
 import functools
 import glob
 import threading
@@ -263,7 +264,7 @@ def test_convert(args):
         # maxsize=shard_size,
     )
 
-    for label in range(0, 10):
+    for label in range(0, 1):
 
         for i in tqdm.tqdm(range(iter_per_shard), disable=not jax.process_index() == 0):
             rng, images, class_labels = test_sharding_jit(rng, converted_jax_params, vae_params, label)
@@ -287,10 +288,10 @@ def test_convert(args):
 
             # if jax.process_index() == 0:
             #     print(local_images.shape, images.shape)
-                # print(local_rng)
-                # print(local_rng.shape)
-                # print(test_sharding_jit._cache_size())
-                # save_image_torch(images, i)
+            # print(local_rng)
+            # print(local_rng.shape)
+            # print(test_sharding_jit._cache_size())
+            # save_image_torch(images, i)
             # print(i, iter_per_shard)
 
             threading.Thread(target=thread_write,
@@ -299,15 +300,14 @@ def test_convert(args):
                                  True if i == iter_per_shard - 1 else False)).start()
         send_file(remote_path=args.output_dir)
 
-
-    if jax.process_index()==0:
+    if jax.process_index() == 0:
 
         while threading.active_count() > 2:
             print(f'{threading.active_count()=}')
             time.sleep(1)
         sink.close()
         print('now send file')
-        send_file(0,remote_path=args.output_dir)
+        send_file(0, remote_path=args.output_dir)
         while threading.active_count() > 2:
             print(f'{threading.active_count()=}')
             time.sleep(1)
@@ -336,6 +336,6 @@ def save_image_torch(img, i):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output-dir", default=".")
+    parser.add_argument("--output-dir", default="shard_path2")
     parser.add_argument("--seed", type=int, default=0)
     test_convert(parser.parse_args())
