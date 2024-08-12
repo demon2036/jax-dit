@@ -279,11 +279,11 @@ def test_convert():
             for shard in images.addressable_shards:
                 device = shard.device
                 local_shard = shard.data
-                images=[]
+                images = []
                 if device in local_devices:
-                    images.append(np.array(local_shard))
-                images=np.stack(images,axis=0)
-                print(images.shape)
+                    images.extend(np.array(local_shard))
+            images = np.stack(images, axis=0)
+            print(images.shape)
             while True:
                 pass
 
