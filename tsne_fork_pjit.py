@@ -47,7 +47,7 @@ def send_file(keep_files=5):
             files = files
         else:
             files = files[:-keep_files]
-
+        print(files)
         for file in files:
             base_name = os.path.basename(file)
             dst = 'shard_path2'
