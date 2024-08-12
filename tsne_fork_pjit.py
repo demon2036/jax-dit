@@ -249,6 +249,8 @@ def test_convert():
             per_process_batch = b // jax.process_count()
             process_idx = jax.process_index()
             local_rng = rng[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
+            local_images = images[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
+            local_class_labels = class_labels[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
 
             # if jax.process_index() == 0:
             #     print(rng.shape, images.shape)
@@ -259,7 +261,7 @@ def test_convert():
             # print(i, iter_per_shard)
             threading.Thread(target=thread_write,
                              args=(
-                                 images, class_labels, sink, label, True if i == iter_per_shard - 1 else False)).start()
+                                 local_images, local_class_labels, sink, label, True if i == iter_per_shard - 1 else False)).start()
         send_file()
 
     while threading.active_count()>2:
