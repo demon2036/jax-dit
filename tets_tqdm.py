@@ -3,7 +3,7 @@ import glob
 import threading
 import time
 from pathlib import Path
-
+from jax._src.array import Shard
 import PIL.Image
 import einops
 import numpy as np
@@ -174,10 +174,17 @@ def test_convert():
 
     )
     x = test_sharding_jit(x)
+
+    local_devices=jax.local_devices()
+
     for shard in x.addressable_shards:
         index = shard.index
+        device=shard.device
         local_shard = shard.data
-        print(local_shard.shape)
+
+        # print(device in local_devices)
+        if device in local_devices:
+            print(local_shard.shape,type(shard),shard.device,np.array(local_shard).shape)
 
 
 def show_image(img, i):
