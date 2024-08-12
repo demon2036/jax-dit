@@ -1,6 +1,7 @@
 import functools
 import glob
 import threading
+import time
 from pathlib import Path
 
 import PIL.Image
@@ -41,23 +42,30 @@ def send_file(keep_files=5):
     elif len(files) <= keep_files:
         pass
     else:
-        for file in files[:-keep_files]:
+
+        if keep_files==0:
+            files=files
+        else:
+            files=files[:-keep_files]
+
+        for file in files:
             base_name = os.path.basename(file)
             dst = 'shard_path2'
             os.makedirs(dst, exist_ok=True)
             print(base_name, files)
 
             def send_data_thread(src_file, dst_file):
-                with wds.gopen(src_file, "rb") as fp_local:
-                    data_to_write = fp_local.read()
+                    with wds.gopen(src_file, "rb") as fp_local:
+                        data_to_write = fp_local.read()
 
-                with wds.gopen(f'{dst_file}/{base_name}', "wb") as fp:
-                    fp.write(data_to_write)
-                    fp.flush()
+                    with wds.gopen(f'{dst_file}', "wb") as fp:
+                        fp.write(data_to_write)
+                        fp.flush()
 
-                os.remove(src_file)
+                    os.remove(src_file)
 
-            threading.Thread(target=send_data_thread, args=(file, dst)).start()
+
+            threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
 
 
 def test_sharding(rng, params, vae_params, class_label: int, diffusion_sample, vae, shape, cfg_scale: float = 1.5):
@@ -132,6 +140,9 @@ def create_state():
 
 
 def test_convert():
+
+
+    print(f'{threading.active_count()=}')
     # jax.distributed.initialize()
     rng = jax.random.key(0)
 
@@ -146,7 +157,7 @@ def test_convert():
 
     class_label = 2
 
-    b, h, w, c = shape = 128, 32, 32, 4
+    b, h, w, c = shape = 1, 32, 32, 4
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
     rng = jax.random.split(rng, num=jax.device_count())
@@ -198,6 +209,7 @@ def test_convert():
     counter = 0
 
 
+
     def thread_write(images, class_labels, sink, label, send_file=False):
         nonlocal counter
         images = images * 255
@@ -216,7 +228,7 @@ def test_convert():
             # sink.next_stream()
             # thread_send()
 
-    data_per_shard = 1024
+    data_per_shard = 4
     per_process_generate_data = b * jax.local_device_count()
     assert data_per_shard % per_process_generate_data == 0
     iter_per_shard = data_per_shard // per_process_generate_data
@@ -229,7 +241,7 @@ def test_convert():
         # maxsize=shard_size,
     )
 
-    for label in range(0, 1000):
+    for label in range(0, 10):
 
         for i in tqdm.tqdm(range(iter_per_shard)):
             rng, images, class_labels = test_sharding_jit(rng, converted_jax_params, vae_params, label)
@@ -244,11 +256,22 @@ def test_convert():
             #     print(local_rng.shape)
             #     print(test_sharding_jit._cache_size())
             #     save_image_torch(images, i)
-            print(i, iter_per_shard)
+            # print(i, iter_per_shard)
             threading.Thread(target=thread_write,
                              args=(
                                  images, class_labels, sink, label, True if i == iter_per_shard - 1 else False)).start()
         send_file()
+
+    while threading.active_count()>2:
+        print(f'{threading.active_count()=}')
+        time.sleep(1)
+    sink.close()
+    print('now send file')
+    send_file(0)
+    while threading.active_count()>2:
+        print(f'{threading.active_count()=}')
+        time.sleep(1)
+
 
 
 def show_image(img, i):
