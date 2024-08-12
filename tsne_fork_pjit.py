@@ -259,6 +259,7 @@ def test_convert():
 
         for i in tqdm.tqdm(range(iter_per_shard), disable=not jax.process_index() == 0):
             rng, images, class_labels = test_sharding_jit(rng, converted_jax_params, vae_params, label)
+            """
             batch_size, *_ = images.shape
             per_process_batch = batch_size // jax.process_count()
             process_idx = jax.process_index()
@@ -272,6 +273,17 @@ def test_convert():
 
             print(global_array_to_host_local_array(images,mesh,PartitionSpec(None)).shape)
             local_images = jax.device_get(local_images * 255)
+            """
+
+            local_devices = jax.local_devices()
+            for shard in images.addressable_shards:
+                device = shard.device
+                local_shard = shard.data
+                images=[]
+                if device in local_devices:
+                    images.append(np.array(local_shard))
+                images=np.stack(images,axis=0)
+                print(images.shape)
             while True:
                 pass
 

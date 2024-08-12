@@ -176,18 +176,11 @@ def test_convert():
     x = test_sharding_jit(x)
 
     local_devices = jax.local_devices()
-
     for shard in x.addressable_shards:
-        index = shard.index
         device = shard.device
         local_shard = shard.data
-
-        # print(device in local_devices)
         if device in local_devices:
             print(local_shard.shape, type(shard), shard.device, np.array(local_shard).shape)
-    print(x.shape)
-
-    print(np.array(x).shape)
 
 
 def show_image(img, i):
