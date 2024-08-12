@@ -185,6 +185,9 @@ def test_convert():
         # print(device in local_devices)
         if device in local_devices:
             print(local_shard.shape, type(shard), shard.device, np.array(local_shard).shape)
+    print(x.shape)
+
+    print(np.array(x).shape)
 
 
 def show_image(img, i):
