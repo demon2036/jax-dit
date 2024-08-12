@@ -281,7 +281,7 @@ def test_convert():
                 local_shard = shard.data
                 images = []
                 if device in local_devices:
-                    images.extend(np.array(local_shard))
+                    images.append(np.array(local_shard))
             images = np.stack(images, axis=0)
             print(images.shape)
             while True:
