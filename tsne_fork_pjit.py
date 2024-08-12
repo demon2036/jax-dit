@@ -265,9 +265,9 @@ def test_convert():
             local_class_labels = class_labels[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
             # jnp.array().devices()
 
-            local_images = local_images[:1]
-            # print(local_images.devices(),)
 
+            # print(local_images.devices(),)
+            print(images.addressable_devices_indices_map(images.shape))
             local_images = jax.device_get(local_images * 255)
             while True:
                 pass
