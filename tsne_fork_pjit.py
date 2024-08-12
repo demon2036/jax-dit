@@ -239,7 +239,7 @@ def test_convert():
             # sink.next_stream()
             # thread_send()
 
-    data_per_shard = 64
+    data_per_shard = 32
     per_process_generate_data = b * jax.local_device_count()
     assert data_per_shard % per_process_generate_data == 0
     iter_per_shard = data_per_shard // per_process_generate_data
@@ -267,7 +267,7 @@ def test_convert():
 
             local_images = local_images[:1]
             # print(local_images.devices(),)
-            print(images.addressable_data(0).shape)
+
             local_images = jax.device_get(local_images * 255)
             while True:
                 pass
