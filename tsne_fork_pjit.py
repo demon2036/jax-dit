@@ -262,6 +262,8 @@ def test_convert():
             local_images = images[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
             local_class_labels = class_labels[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
 
+            local_images = jax.device_get(local_images * 255)
+
             if jax.process_index() == 0:
                 print(local_images.shape, images.shape)
                 # print(local_rng)
@@ -272,7 +274,7 @@ def test_convert():
 
             threading.Thread(target=thread_write,
                              args=(
-                                 jnp.copy(local_images), jnp.copy(local_class_labels), sink, label,
+                                 local_images, local_class_labels, sink, label,
                                  True if i == iter_per_shard - 1 else False)).start()
         send_file()
 
