@@ -266,7 +266,7 @@ def test_convert():
             # jnp.array().devices()
 
             local_images = local_images[:1]
-            print(local_images.devices(),images.addressable_data())
+            print(local_images.devices(),images.addressable_data(0))
             local_images = jax.device_get(local_images * 255)
             while True:
                 pass
