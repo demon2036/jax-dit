@@ -274,7 +274,7 @@ def test_convert():
             print(global_array_to_host_local_array(images,mesh,PartitionSpec(None)).shape)
             local_images = jax.device_get(local_images * 255)
             """
-            images = []
+            local_images = []
             local_devices = jax.local_devices()
 
             for shard in images.addressable_shards:
@@ -286,9 +286,9 @@ def test_convert():
                     if jax.process_index() == 0:
                         print(device, local_devices)
 
-                    images.append(np.array(local_shard))
-            images = np.concatenate(images, axis=0)
-            print(images.shape)
+                    local_images.append(np.array(local_shard))
+            local_images = np.concatenate(local_images, axis=0)
+            print(local_images.shape)
             while True:
                 pass
 
