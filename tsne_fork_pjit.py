@@ -246,7 +246,7 @@ def test_convert():
             # sink.next_stream()
             # thread_send()
 
-    data_per_shard = 1024
+    data_per_shard = 2048
     per_process_generate_data = b * jax.local_device_count()
     assert data_per_shard % per_process_generate_data == 0
     iter_per_shard = data_per_shard // per_process_generate_data

@@ -179,8 +179,15 @@ def test_convert():
     for shard in x.addressable_shards:
         device = shard.device
         local_shard = shard.data
+        images = []
         if device in local_devices:
-            print(local_shard.shape, type(shard), shard.device, np.array(local_shard).shape)
+
+            if jax.process_index() == 0:
+                print(device, local_devices)
+
+            images.append(np.array(local_shard))
+    images = np.stack(images, axis=0)
+    print(images.shape)
 
 
 def show_image(img, i):
