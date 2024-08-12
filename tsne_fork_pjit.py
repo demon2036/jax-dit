@@ -207,22 +207,22 @@ def test_convert():
     lock = threading.Lock()
 
     def thread_write(images, class_labels, sink, label, send_file=False):
-        images = images * 255
-
-        b, *_ = images.shape
-
-        local_devices = jax.local_device_count()
-        per_device_idx = b // local_devices
-        images_np = []
-
-        for i in range(local_devices):
-            images_np.append(np.array(images[per_device_idx * i:(i + 1) * per_device_idx], dtype=np.uint8))
-        images_np = np.stack(images_np, axis=0)
+        # images = images * 255
+        #
+        # b, *_ = images.shape
+        #
+        # local_devices = jax.local_device_count()
+        # per_device_idx = b // local_devices
+        # images_np = []
+        #
+        # for i in range(local_devices):
+        #     images_np.append(np.array(images[per_device_idx * i:(i + 1) * per_device_idx], dtype=np.uint8))
+        # images_np = np.stack(images_np, axis=0)
 
         with lock:
             nonlocal counter
 
-            for img, cls_label in zip(images_np, class_labels):
+            for img, cls_label in zip(images, class_labels):
                 sink.write({
                     "__key__": "%010d" % counter,
                     "jpg": PIL.Image.fromarray(img),
