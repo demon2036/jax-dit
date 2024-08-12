@@ -226,6 +226,7 @@ def test_convert():
 
     def thread_write(images, class_labels, sink, label, send_file=False):
         images = images * 255
+        images=np.asarray(images,dtype=np.uint8)
         with lock:
             nonlocal counter
 
