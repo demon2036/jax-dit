@@ -48,12 +48,13 @@ def send_file(keep_files=5):
             files = files
         else:
             files = files[:-keep_files]
-        print(files)
+        # print(files)
         for file in files:
             base_name = os.path.basename(file)
             dst = 'shard_path2'
             os.makedirs(dst, exist_ok=True)
-            print(base_name, files)
+            if jax.process_index()==0:
+                print(base_name, files)
 
             def send_data_thread(src_file, dst_file):
                 with wds.gopen(src_file, "rb") as fp_local:
