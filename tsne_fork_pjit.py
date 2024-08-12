@@ -208,20 +208,30 @@ def test_convert():
 
     def thread_write(images, class_labels, sink, label, send_file=False):
         images = images * 255
+
+        b, *_ = images.shape
+
+        local_devices = jax.local_device_count()
+        per_device_idx = b // local_devices
+        images_np = []
+
+        for i in range(local_devices):
+            images_np.append(np.array(images[per_device_idx * i:(i + 1) * per_device_idx], dtype=np.uint8))
+        images_np = np.stack(images_np, axis=0)
+
         with lock:
             nonlocal counter
 
-            for img, cls_label in zip(images, class_labels):
+            for img, cls_label in zip(images_np, class_labels):
                 sink.write({
                     "__key__": "%010d" % counter,
-                    "jpg": PIL.Image.fromarray(np.array(img, dtype=np.uint8)),
+                    "jpg": PIL.Image.fromarray(img),
                     "cls": int(cls_label),
                 })
                 counter += 1
 
-            if jax.process_index()==0:
-
-                print(counter,images.shape)
+            if jax.process_index() == 0:
+                print(counter, images.shape)
 
             if send_file:
                 sink.shard = jax.process_index() + label * jax.process_count()
@@ -259,8 +269,6 @@ def test_convert():
                 # print(test_sharding_jit._cache_size())
                 # save_image_torch(images, i)
             # print(i, iter_per_shard)
-
-
 
             threading.Thread(target=thread_write,
                              args=(
