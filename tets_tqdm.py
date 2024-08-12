@@ -163,7 +163,6 @@ def test_convert():
 
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
-
     # test_sharding_jit = shard_map(
     #     functools.partial(test_sharding, shape=shape, diffusion_sample=diffusion_sample,
     #                       vae=vae),
@@ -175,13 +174,14 @@ def test_convert():
     #
     # )
 
-    host_id = jax.process_index()
-    arr = host_local_array_to_global_array(np.arange(4) * host_id, mesh, PartitionSpec('data'))
-    pspecs = jax.sharding.PartitionSpec('host')
-    host_local_output = global_array_to_host_local_array(arr, mesh, PartitionSpec('data'))
-    if jax.process_count()==0:
-        print(host_local_output)
+    # host_id = jax.process_index()
+    # arr = host_local_array_to_global_array(np.arange(4) * host_id, mesh, PartitionSpec('data'))
+    # host_local_output = global_array_to_host_local_array(arr, mesh, PartitionSpec('data'))
+    # if jax.process_count() == 0:
+    #     print(host_local_output)
 
+
+    print(jnp.array([1]).addressable_shards)
 
 
 
