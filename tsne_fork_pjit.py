@@ -65,7 +65,7 @@ def send_file(keep_files=5, remote_path='shard_path2'):
 
                 with wds.gopen(f'{dst_file}', "wb") as fp:
                     fp.write(data_to_write)
-                    fp.flush()
+                    # fp.flush()
 
                 os.remove(src_file)
 
@@ -173,7 +173,7 @@ def test_convert(args):
 
     class_label = 2
 
-    b, h, w, c = shape = 1, 32, 32, 4
+    b, h, w, c = shape = args.per_device_batch, 32, 32, 4
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
     rng = jax.random.split(rng, num=jax.device_count())
@@ -250,7 +250,7 @@ def test_convert(args):
             # sink.next_stream()
             # thread_send()
 
-    data_per_shard = 4
+    data_per_shard = args.data_per_shard
     per_process_generate_data = b * jax.local_device_count()
     assert data_per_shard % per_process_generate_data == 0
     iter_per_shard = data_per_shard // per_process_generate_data
@@ -339,4 +339,6 @@ if __name__ == "__main__":
     # parser.add_argument("--output-dir", default="shard_path2")
     parser.add_argument("--output-dir", default="gs://caster-us-central-2b-2/imagenet-generated-50steps")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--data-per-shard", type=int, default=4)
+    parser.add_argument("--per-device-batch", type=int, default=1)
     test_convert(parser.parse_args())
