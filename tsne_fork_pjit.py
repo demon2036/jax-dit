@@ -146,8 +146,8 @@ def collect_process_data(data):
         device = shard.device
         local_shard = shard.data
         if device in local_devices:
-            if jax.process_index() == 0:
-                print(device, local_devices)
+            # if jax.process_index() == 0:
+            #     print(device, local_devices)
             local_data.append(np.array(local_shard))
     local_data = np.concatenate(local_data, axis=0)
     return local_data
@@ -169,7 +169,7 @@ def test_convert():
 
     class_label = 2
 
-    b, h, w, c = shape = 8, 32, 32, 4
+    b, h, w, c = shape = 128, 32, 32, 4
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
     rng = jax.random.split(rng, num=jax.device_count())
@@ -178,9 +178,9 @@ def test_convert():
 
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
-    for device in x_sharding.addressable_devices:
-        if jax.process_index() == 0:
-            print(device, device.coords, type(device.coords))
+    # for device in x_sharding.addressable_devices:
+    #     if jax.process_index() == 0:
+    #         print(device, device.coords, type(device.coords))
 
     model, converted_jax_params = create_state()
     diffusion_sample = create_diffusion_sample(model=model, apply_fn=model.forward_with_cfg)
@@ -246,7 +246,7 @@ def test_convert():
             # sink.next_stream()
             # thread_send()
 
-    data_per_shard = 32
+    data_per_shard = 1024
     per_process_generate_data = b * jax.local_device_count()
     assert data_per_shard % per_process_generate_data == 0
     iter_per_shard = data_per_shard // per_process_generate_data
