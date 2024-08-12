@@ -34,7 +34,7 @@ import webdataset as wds
 from jax.experimental.multihost_utils import global_array_to_host_local_array
 
 
-def send_file(keep_files=5):
+def send_file(keep_files=5, remote_path='shard_path2'):
     files = glob.glob('shard_path/*.tar')
     files.sort(key=lambda x: os.path.getctime(x), )
 
@@ -51,9 +51,11 @@ def send_file(keep_files=5):
         # print(files)
         for file in files:
             base_name = os.path.basename(file)
-            dst = 'shard_path2'
-            os.makedirs(dst, exist_ok=True)
-            if jax.process_index()==0:
+            dst = remote_path
+            if 'gs' not in remote_path:
+                os.makedirs(dst, exist_ok=True)
+
+            if jax.process_index() == 0:
                 print(base_name, files)
 
             def send_data_thread(src_file, dst_file):
@@ -154,10 +156,10 @@ def collect_process_data(data):
     return local_data
 
 
-def test_convert():
+def test_convert(args):
     print(f'{threading.active_count()=}')
     # jax.distributed.initialize()
-    rng = jax.random.key(0)
+    rng = jax.random.key(args.seed)
 
     device_count = jax.device_count()
     mesh_shape = (device_count,)
@@ -227,7 +229,7 @@ def test_convert():
 
     def thread_write(images, class_labels, sink, label, send_file=False):
         images = images * 255
-        images=np.asarray(images,dtype=np.uint8)
+        images = np.asarray(images, dtype=np.uint8)
         with lock:
             nonlocal counter
 
@@ -283,8 +285,8 @@ def test_convert():
             local_images = collect_process_data(images)
             local_class_labels = collect_process_data(class_labels)
 
-            if jax.process_index() == 0:
-                print(local_images.shape, images.shape)
+            # if jax.process_index() == 0:
+            #     print(local_images.shape, images.shape)
                 # print(local_rng)
                 # print(local_rng.shape)
                 # print(test_sharding_jit._cache_size())
@@ -295,17 +297,20 @@ def test_convert():
                              args=(
                                  local_images, local_class_labels, sink, label,
                                  True if i == iter_per_shard - 1 else False)).start()
-        send_file()
+        send_file(remote_path=args.output_dir)
 
-    while threading.active_count() > 2:
-        print(f'{threading.active_count()=}')
-        time.sleep(1)
-    sink.close()
-    print('now send file')
-    send_file(0)
-    while threading.active_count() > 2:
-        print(f'{threading.active_count()=}')
-        time.sleep(1)
+
+    if jax.process_index()==0:
+
+        while threading.active_count() > 2:
+            print(f'{threading.active_count()=}')
+            time.sleep(1)
+        sink.close()
+        print('now send file')
+        send_file(0,remote_path=args.output_dir)
+        while threading.active_count() > 2:
+            print(f'{threading.active_count()=}')
+            time.sleep(1)
 
 
 def show_image(img, i):
@@ -330,4 +335,7 @@ def save_image_torch(img, i):
 
 
 if __name__ == "__main__":
-    test_convert()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output-dir", default=".")
+    parser.add_argument("--seed", type=int, default=0)
+    test_convert(parser.parse_args())
