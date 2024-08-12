@@ -163,27 +163,19 @@ def test_convert():
 
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
-    # test_sharding_jit = shard_map(
-    #     functools.partial(test_sharding, shape=shape, diffusion_sample=diffusion_sample,
-    #                       vae=vae),
-    #     mesh=mesh,
-    #     in_specs=(PartitionSpec('data'), PartitionSpec(None),
-    #               PartitionSpec(None), PartitionSpec()
-    #               ),
-    #     out_specs=PartitionSpec('data')
-    #
-    # )
+    def test_sharding2(rng):
+        return rng
 
-    # host_id = jax.process_index()
-    # arr = host_local_array_to_global_array(np.arange(4) * host_id, mesh, PartitionSpec('data'))
-    # host_local_output = global_array_to_host_local_array(arr, mesh, PartitionSpec('data'))
-    # if jax.process_count() == 0:
-    #     print(host_local_output)
+    test_sharding_jit = shard_map(
+        test_sharding2,
+        mesh=mesh,
+        in_specs=(PartitionSpec('data'),),
+        out_specs=PartitionSpec('data')
 
+    )
+    x = test_sharding_jit(x)
 
-    print(jnp.array([1]).addressable_shards)
-
-
+    print(x.addressable_shards)
 
 
 def show_image(img, i):
