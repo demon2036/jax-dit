@@ -287,7 +287,7 @@ def test_convert():
                         print(device, local_devices)
 
                     images.append(np.array(local_shard))
-            images = np.stack(images, axis=0)
+            images = np.concatenate(images, axis=0)
             print(images.shape)
             while True:
                 pass
