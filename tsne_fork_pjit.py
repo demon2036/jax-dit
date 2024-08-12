@@ -31,6 +31,7 @@ import matplotlib.pyplot as plt
 from prefetch import convert_to_global_array
 from torchvision.utils import save_image
 import webdataset as wds
+from jax.experimental.multihost_utils import global_array_to_host_local_array
 
 
 def send_file(keep_files=5):
@@ -97,8 +98,8 @@ def test_sharding(rng, params, vae_params, class_label: int, diffusion_sample, v
     # image=jnp.array(image,dtype=jnp.uint8)
 
     image = einops.rearrange(image, 'b c h w->b h w c')
-    image = jax.lax.all_gather(image, 'data', tiled=True)
-
+    image = jax.lax.all(image, 'data', tiled=True)
+    all_gather_invariant()
     return rng, image, class_labels
 
 
@@ -271,7 +272,7 @@ def test_convert():
 
             # print(local_images.devices(),)
 
-            print(images.addressable_devices_indices_map(images.shape))
+            print(global_array_to_host_local_array(images,mesh,PartitionSpec('data')).shape)
             local_images = jax.device_get(local_images * 255)
             while True:
                 pass
