@@ -274,13 +274,18 @@ def test_convert():
             print(global_array_to_host_local_array(images,mesh,PartitionSpec(None)).shape)
             local_images = jax.device_get(local_images * 255)
             """
-
+            images = []
             local_devices = jax.local_devices()
+
             for shard in images.addressable_shards:
                 device = shard.device
                 local_shard = shard.data
-                images = []
+
                 if device in local_devices:
+
+                    if jax.process_index() == 0:
+                        print(device, local_devices)
+
                     images.append(np.array(local_shard))
             images = np.stack(images, axis=0)
             print(images.shape)
