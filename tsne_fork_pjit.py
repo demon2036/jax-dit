@@ -264,7 +264,7 @@ def test_convert(args):
         # maxsize=shard_size,
     )
 
-    for label in range(0, 2):
+    for label in range(0, 100):
 
         for i in tqdm.tqdm(range(iter_per_shard), disable=not jax.process_index() == 0):
             rng, images, class_labels = test_sharding_jit(rng, converted_jax_params, vae_params, label)
@@ -339,6 +339,6 @@ if __name__ == "__main__":
     # parser.add_argument("--output-dir", default="shard_path2")
     parser.add_argument("--output-dir", default="gs://caster-us-central-2b-2/imagenet-generated-50steps")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--data-per-shard", type=int, default=4)
-    parser.add_argument("--per-device-batch", type=int, default=1)
+    parser.add_argument("--data-per-shard", type=int, default=2048)
+    parser.add_argument("--per-device-batch", type=int, default=128)
     test_convert(parser.parse_args())
