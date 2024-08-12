@@ -246,7 +246,7 @@ def test_convert(args):
                 print(counter, images.shape)
 
             if send_file:
-                sink.shard = jax.process_index() + (label+1) * jax.process_count()
+                sink.shard = jax.process_index() + (label + 1) * jax.process_count()
             # sink.next_stream()
             # thread_send()
 
@@ -299,8 +299,6 @@ def test_convert(args):
                                  local_images, local_class_labels, sink, label,
                                  True if i == iter_per_shard - 1 else False)).start()
         send_file(remote_path=args.output_dir)
-
-
 
     while threading.active_count() > 2:
         print(f'{threading.active_count()=}')
