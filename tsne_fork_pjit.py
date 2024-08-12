@@ -204,7 +204,7 @@ def test_convert():
     print(shard_filename)
 
     counter = 0
-    lock=threading.Lock()
+    lock = threading.Lock()
 
     def thread_write(images, class_labels, sink, label, send_file=False):
         images = images * 255
@@ -218,7 +218,10 @@ def test_convert():
                     "cls": int(cls_label),
                 })
                 counter += 1
-            print(counter)
+
+            if jax.process_index()==0:
+
+                print(counter,images.shape)
 
             if send_file:
                 sink.shard = jax.process_index() + label * jax.process_count()
@@ -240,7 +243,7 @@ def test_convert():
 
     for label in range(0, 10):
 
-        for i in tqdm.tqdm(range(iter_per_shard)):
+        for i in tqdm.tqdm(range(iter_per_shard), disable=not jax.process_index() == 0):
             rng, images, class_labels = test_sharding_jit(rng, converted_jax_params, vae_params, label)
             b, *_ = rng.shape
             per_process_batch = b // jax.process_count()
