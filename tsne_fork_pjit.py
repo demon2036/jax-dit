@@ -157,7 +157,7 @@ def test_convert():
 
     class_label = 2
 
-    b, h, w, c = shape = 1, 32, 32, 4
+    b, h, w, c = shape = 128, 32, 32, 4
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
     rng = jax.random.split(rng, num=jax.device_count())
@@ -228,7 +228,7 @@ def test_convert():
             # sink.next_stream()
             # thread_send()
 
-    data_per_shard = 4
+    data_per_shard = 1024
     per_process_generate_data = b * jax.local_device_count()
     assert data_per_shard % per_process_generate_data == 0
     iter_per_shard = data_per_shard // per_process_generate_data
