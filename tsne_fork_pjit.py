@@ -97,6 +97,7 @@ def test_sharding(rng, params, vae_params, class_label: int, diffusion_sample, v
     # image=jnp.array(image,dtype=jnp.uint8)
 
     image = einops.rearrange(image, 'b c h w->b h w c')
+    image = jax.lax.all_gather(image, 'data', tiled=True)
 
     return rng, image, class_labels
 
@@ -195,7 +196,7 @@ def test_convert():
         in_specs=(PartitionSpec('data'), PartitionSpec(None),
                   PartitionSpec(None), PartitionSpec()
                   ),
-        out_specs=(PartitionSpec('data'),PartitionSpec(None),PartitionSpec(None))
+        out_specs=PartitionSpec('data')
 
     )
 
@@ -268,12 +269,12 @@ def test_convert():
             # jnp.array().devices()
 
 
-            # # print(local_images.devices(),)
-            #
-            # print(images.addressable_devices_indices_map(images.shape))
-            # local_images = jax.device_get(local_images * 255)
-            # while True:
-            #     pass
+            # print(local_images.devices(),)
+
+            print(images.addressable_devices_indices_map(images.shape))
+            local_images = jax.device_get(local_images * 255)
+            while True:
+                pass
 
             if jax.process_index() == 0:
                 print(local_images.shape, images.shape)
