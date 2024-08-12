@@ -300,17 +300,17 @@ def test_convert(args):
                                  True if i == iter_per_shard - 1 else False)).start()
         send_file(remote_path=args.output_dir)
 
-    if jax.process_index() == 0:
 
-        while threading.active_count() > 2:
-            print(f'{threading.active_count()=}')
-            time.sleep(1)
-        sink.close()
-        print('now send file')
-        send_file(0, remote_path=args.output_dir)
-        while threading.active_count() > 2:
-            print(f'{threading.active_count()=}')
-            time.sleep(1)
+
+    while threading.active_count() > 2:
+        print(f'{threading.active_count()=}')
+        time.sleep(1)
+    sink.close()
+    print('now send file')
+    send_file(0, remote_path=args.output_dir)
+    while threading.active_count() > 2:
+        print(f'{threading.active_count()=}')
+        time.sleep(1)
 
 
 def show_image(img, i):
