@@ -181,8 +181,7 @@ def test_convert():
 
     vae_params = jax.tree_util.tree_map(lambda x: jnp.asarray(np.array(x)), vae_params)
 
-    if jax.process_index()==0:
-
+    if jax.process_index() == 0:
         print(converted_jax_params['x_embedder']['proj']['kernel'].devices())
         print(vae_params['decoder']['conv_in']['bias'].devices())
         print(type(converted_jax_params), type(vae_params))
@@ -250,7 +249,7 @@ def test_convert():
         maxcount=data_per_shard,
         maxsize=3e10,
         start_shard=jax.process_index(),
-        verbose=jax.process_index()==0
+        verbose=jax.process_index() == 0
         # maxsize=shard_size,
     )
 
@@ -265,14 +264,11 @@ def test_convert():
             local_images = images[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
             local_class_labels = class_labels[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
             # jnp.array().devices()
-            local_images=local_images[:1]
-            print(local_images.devices())
+            local_images = local_images[:1]
+            print(local_images.devices(),images.addressable_data(process_idx))
             local_images = jax.device_get(local_images * 255)
             while True:
                 pass
-
-
-
 
             if jax.process_index() == 0:
                 print(local_images.shape, images.shape)
