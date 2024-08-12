@@ -174,9 +174,9 @@ def test_convert():
 
     )
     x = test_sharding_jit(x)
-    if jax.process_count()==0:
-        print(x.addressable_shards)
-        print(type(x.addressable_shards))
+    # if jax.process_count() == 0:
+    #     print(x.addressable_shards)
+    print(type(x.addressable_shards))
 
 
 def show_image(img, i):
