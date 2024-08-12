@@ -261,7 +261,7 @@ def test_convert():
             # print(i, iter_per_shard)
             threading.Thread(target=thread_write,
                              args=(
-                                 jnp.copy(local_images), local_class_labels, sink, label, True if i == iter_per_shard - 1 else False)).start()
+                                 jnp.copy(local_images), jnp.copy(local_class_labels), sink, label, True if i == iter_per_shard - 1 else False)).start()
         send_file()
 
     while threading.active_count()>2:
