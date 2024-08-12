@@ -164,7 +164,7 @@ def test_convert():
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
     def test_sharding2(rng):
-        return rng
+        return jnp.ones_like(x)
 
     test_sharding_jit = shard_map(
         test_sharding2,
@@ -175,16 +175,16 @@ def test_convert():
     )
     x = test_sharding_jit(x)
 
-    local_devices=jax.local_devices()
+    local_devices = jax.local_devices()
 
     for shard in x.addressable_shards:
         index = shard.index
-        device=shard.device
+        device = shard.device
         local_shard = shard.data
 
         # print(device in local_devices)
         if device in local_devices:
-            print(local_shard.shape,type(shard),shard.device,np.array(local_shard).shape)
+            print(local_shard.shape, type(shard), shard.device, np.array(local_shard).shape)
 
 
 def show_image(img, i):
