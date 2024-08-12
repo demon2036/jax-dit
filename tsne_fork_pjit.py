@@ -173,7 +173,7 @@ def test_convert(args):
 
     class_label = 2
 
-    b, h, w, c = shape = 128, 32, 32, 4
+    b, h, w, c = shape = 1, 32, 32, 4
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
     rng = jax.random.split(rng, num=jax.device_count())
@@ -246,11 +246,11 @@ def test_convert(args):
                 print(counter, images.shape)
 
             if send_file:
-                sink.shard = jax.process_index() + label * jax.process_count()
+                sink.shard = jax.process_index() + (label+1) * jax.process_count()
             # sink.next_stream()
             # thread_send()
 
-    data_per_shard = 2048
+    data_per_shard = 4
     per_process_generate_data = b * jax.local_device_count()
     assert data_per_shard % per_process_generate_data == 0
     iter_per_shard = data_per_shard // per_process_generate_data
@@ -264,7 +264,7 @@ def test_convert(args):
         # maxsize=shard_size,
     )
 
-    for label in range(0, 1):
+    for label in range(0, 2):
 
         for i in tqdm.tqdm(range(iter_per_shard), disable=not jax.process_index() == 0):
             rng, images, class_labels = test_sharding_jit(rng, converted_jax_params, vae_params, label)
@@ -336,6 +336,7 @@ def save_image_torch(img, i):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output-dir", default="shard_path2")
+    # parser.add_argument("--output-dir", default="shard_path2")
+    parser.add_argument("--output-dir", default="gs://caster-us-central-2b-2/imagenet-generated-50steps")
     parser.add_argument("--seed", type=int, default=0)
     test_convert(parser.parse_args())
