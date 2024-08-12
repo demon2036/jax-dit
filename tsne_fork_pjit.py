@@ -255,8 +255,8 @@ def test_convert():
 
         for i in tqdm.tqdm(range(iter_per_shard), disable=not jax.process_index() == 0):
             rng, images, class_labels = test_sharding_jit(rng, converted_jax_params, vae_params, label)
-            b, *_ = images.shape
-            per_process_batch = b // jax.process_count()
+            batch_size, *_ = images.shape
+            per_process_batch = batch_size // jax.process_count()
             process_idx = jax.process_index()
             local_rng = rng[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
             local_images = images[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
