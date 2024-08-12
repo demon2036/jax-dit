@@ -138,6 +138,21 @@ def create_state():
     return model, converted_jax_params
 
 
+def collect_process_data(data):
+    local_data = []
+    local_devices = jax.local_devices()
+
+    for shard in data.addressable_shards:
+        device = shard.device
+        local_shard = shard.data
+        if device in local_devices:
+            if jax.process_index() == 0:
+                print(device, local_devices)
+            local_data.append(np.array(local_shard))
+    local_data = np.concatenate(local_data, axis=0)
+    return local_data
+
+
 def test_convert():
     print(f'{threading.active_count()=}')
     # jax.distributed.initialize()
@@ -210,18 +225,7 @@ def test_convert():
     lock = threading.Lock()
 
     def thread_write(images, class_labels, sink, label, send_file=False):
-        # images = images * 255
-        #
-        # b, *_ = images.shape
-        #
-        # local_devices = jax.local_device_count()
-        # per_device_idx = b // local_devices
-        # images_np = []
-        #
-        # for i in range(local_devices):
-        #     images_np.append(np.array(images[per_device_idx * i:(i + 1) * per_device_idx], dtype=np.uint8))
-        # images_np = np.stack(images_np, axis=0)
-
+        images = images * 255
         with lock:
             nonlocal counter
 
@@ -274,23 +278,8 @@ def test_convert():
             print(global_array_to_host_local_array(images,mesh,PartitionSpec(None)).shape)
             local_images = jax.device_get(local_images * 255)
             """
-            local_images = []
-            local_devices = jax.local_devices()
-
-            for shard in images.addressable_shards:
-                device = shard.device
-                local_shard = shard.data
-
-                if device in local_devices:
-
-                    if jax.process_index() == 0:
-                        print(device, local_devices)
-
-                    local_images.append(np.array(local_shard))
-            local_images = np.concatenate(local_images, axis=0)
-            print(local_images.shape)
-            while True:
-                pass
+            local_images = collect_process_data(images)
+            local_class_labels = collect_process_data(class_labels)
 
             if jax.process_index() == 0:
                 print(local_images.shape, images.shape)
