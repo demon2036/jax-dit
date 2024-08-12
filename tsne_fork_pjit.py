@@ -43,10 +43,10 @@ def send_file(keep_files=5):
         pass
     else:
 
-        if keep_files==0:
-            files=files
+        if keep_files == 0:
+            files = files
         else:
-            files=files[:-keep_files]
+            files = files[:-keep_files]
 
         for file in files:
             base_name = os.path.basename(file)
@@ -55,15 +55,14 @@ def send_file(keep_files=5):
             print(base_name, files)
 
             def send_data_thread(src_file, dst_file):
-                    with wds.gopen(src_file, "rb") as fp_local:
-                        data_to_write = fp_local.read()
+                with wds.gopen(src_file, "rb") as fp_local:
+                    data_to_write = fp_local.read()
 
-                    with wds.gopen(f'{dst_file}', "wb") as fp:
-                        fp.write(data_to_write)
-                        fp.flush()
+                with wds.gopen(f'{dst_file}', "wb") as fp:
+                    fp.write(data_to_write)
+                    fp.flush()
 
-                    os.remove(src_file)
-
+                os.remove(src_file)
 
             threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
 
@@ -140,8 +139,6 @@ def create_state():
 
 
 def test_convert():
-
-
     print(f'{threading.active_count()=}')
     # jax.distributed.initialize()
     rng = jax.random.key(0)
@@ -207,24 +204,24 @@ def test_convert():
     print(shard_filename)
 
     counter = 0
-
-
+    lock=threading.Lock()
 
     def thread_write(images, class_labels, sink, label, send_file=False):
-        nonlocal counter
         images = images * 255
+        with lock:
+            nonlocal counter
 
-        for img, cls_label in zip(images, class_labels):
-            sink.write({
-                "__key__": "%010d" % counter,
-                "jpg": PIL.Image.fromarray(np.array(img, dtype=np.uint8)),
-                "cls": int(cls_label),
-            })
-            counter += 1
-        print(counter)
+            for img, cls_label in zip(images, class_labels):
+                sink.write({
+                    "__key__": "%010d" % counter,
+                    "jpg": PIL.Image.fromarray(np.array(img, dtype=np.uint8)),
+                    "cls": int(cls_label),
+                })
+                counter += 1
+            print(counter)
 
-        if send_file:
-            sink.shard = jax.process_index() + label * jax.process_count()
+            if send_file:
+                sink.shard = jax.process_index() + label * jax.process_count()
             # sink.next_stream()
             # thread_send()
 
@@ -261,19 +258,19 @@ def test_convert():
             # print(i, iter_per_shard)
             threading.Thread(target=thread_write,
                              args=(
-                                 jnp.copy(local_images), jnp.copy(local_class_labels), sink, label, True if i == iter_per_shard - 1 else False)).start()
+                                 jnp.copy(local_images), jnp.copy(local_class_labels), sink, label,
+                                 True if i == iter_per_shard - 1 else False)).start()
         send_file()
 
-    while threading.active_count()>2:
+    while threading.active_count() > 2:
         print(f'{threading.active_count()=}')
         time.sleep(1)
     sink.close()
     print('now send file')
     send_file(0)
-    while threading.active_count()>2:
+    while threading.active_count() > 2:
         print(f'{threading.active_count()=}')
         time.sleep(1)
-
 
 
 def show_image(img, i):
