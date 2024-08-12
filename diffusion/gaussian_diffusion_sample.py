@@ -72,7 +72,7 @@ class GaussianDiffusion:
 
         self.num_timesteps = int(betas.shape[0])
 
-        self.sample_steps = 75
+        self.sample_steps = 50
 
         alphas = 1.0 - betas
         self.alphas_cumprod = np.cumprod(alphas, axis=0)
