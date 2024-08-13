@@ -264,7 +264,7 @@ def test_convert(args):
         # maxsize=shard_size,
     )
 
-    for label in range(0, 100):
+    for label in range(0, 50):
 
         for i in tqdm.tqdm(range(iter_per_shard), disable=not jax.process_index() == 0):
             rng, images, class_labels = test_sharding_jit(rng, converted_jax_params, vae_params, label)
