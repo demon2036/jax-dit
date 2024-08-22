@@ -188,9 +188,7 @@ def collect_process_data(data):
 
 
 def test_convert(args):
-    print(f'{threading.active_count()=}')
     # jax.distributed.initialize()
-    rng = jax.random.key(args.seed)
 
     device_count = jax.device_count()
     mesh_shape = (device_count,)
@@ -214,6 +212,7 @@ def test_convert(args):
         out_specs=PartitionSpec('data')
 
     )
+    x_sharding = mesh_sharding(PartitionSpec('data'))
 
     test_sharding_jit = jax.jit(test_sharding_jit)
 
@@ -225,7 +224,6 @@ def test_convert(args):
     data_per_shard = args.data_per_shard
     per_process_generate_data = b * jax.local_device_count()
     assert data_per_shard % per_process_generate_data == 0
-    iter_per_shard = data_per_shard // per_process_generate_data
 
     sink = wds.ShardWriter(
         shard_filename,
@@ -242,14 +240,18 @@ def test_convert(args):
     for i, (x, y) in enumerate(dataloader):
         x, y = jax.tree_util.tree_map(np.asarray, (x, y))
 
-        logits = test_sharding_jit(x, converted_jax_params, )
+        x_shard = convert_to_global_array(x, x_sharding)
 
-        model_predict_label = np.array(logits).argmax(axis=1)
+        logits = test_sharding_jit(x_shard, converted_jax_params, )
+
+        x = collect_process_data(x_shard)
+        logits_local = collect_process_data(logits)
+
+        model_predict_label = np.array(logits_local).argmax(axis=1)
         y = np.array(y)
 
         print(np.sum(model_predict_label == y) / x.shape[0])
 
-        logits_local = collect_process_data(logits)
         threading.Thread(target=thread_write,
                          args=(
                              x, y, logits_local, sink, data_per_shard)).start()
