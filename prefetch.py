@@ -11,9 +11,7 @@ import numpy as np
 def convert_to_global_array(x, x_sharding):
     b, *res = x.shape
     # x = np.array(x)
-
     per_replica_batches_x = jnp.split(x, jax.local_device_count())
-
     global_batch_shape_x = (b * jax.process_count(), *res)
 
     # s = sorted(x_sharding.addressable_devices, key=lambda x: (x.coords[1], x.coords[0]))
