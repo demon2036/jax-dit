@@ -238,8 +238,9 @@ def test_convert(args):
     # while True:
     #     pass
 
-    # dataloader = create_dataloaders('shard_path2/imagenet-generated-100steps_shards-00781.tar',
-    # valid_batch_size=64) dataloader = create_dataloaders(
+    # dataloader = create_dataloaders('shard_path3/imagenet-generated-100steps_shards-00001.tar',
+    # valid_batch_size=64)
+    # dataloader = create_dataloaders(
     # 'gs://shadow-center-2b/imagenet-generated-100steps/imagenet-generated -50steps_shards-01599.tar',
     # valid_batch_size=64) dataloader = create_dataloaders(
     # 'gs://shadow-center-2b/imagenet-generated-100steps/shards-{00000..06399}.tar',
@@ -284,5 +285,5 @@ if __name__ == "__main__":
     # parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--data-per-shard", type=int, default=2048)
-    parser.add_argument("--per-device-batch", type=int, default=256)
+    parser.add_argument("--per-device-batch", type=int, default=64)
     test_convert(parser.parse_args())
