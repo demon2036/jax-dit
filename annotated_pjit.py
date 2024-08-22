@@ -239,9 +239,7 @@ def test_convert(args):
                                     valid_batch_size=args.per_device_batch)
     for i, (x, y) in enumerate(dataloader):
         x, y = jax.tree_util.tree_map(np.asarray, (x, y))
-
         x_shard = convert_to_global_array(x, x_sharding)
-
         logits = test_sharding_jit(x_shard, converted_jax_params, )
 
         x = collect_process_data(x_shard)
@@ -250,7 +248,7 @@ def test_convert(args):
         model_predict_label = np.array(logits_local).argmax(axis=1)
         y = np.array(y)
 
-        print(np.sum(model_predict_label == y) / x.shape[0])
+        print(np.sum(model_predict_label == y) / x.shape[0],x.shape)
 
         threading.Thread(target=thread_write,
                          args=(
