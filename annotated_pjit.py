@@ -265,18 +265,18 @@ def test_convert(args):
         threading.Thread(target=thread_write,
                          args=(
                              x_local, y_local, logits_local, sink, data_per_shard)).start()
-    #
-    #     send_file(remote_path=args.output_dir)
-    #
-    # while threading.active_count() > 2:
-    #     print(f'{threading.active_count()=}')
-    #     time.sleep(1)
-    # sink.close()
-    # print('now send file')
-    # send_file(0, remote_path=args.output_dir)
-    # while threading.active_count() > 2:
-    #     print(f'{threading.active_count()=}')
-    #     time.sleep(1)
+
+        send_file(remote_path=args.output_dir)
+
+    while threading.active_count() > 2:
+        print(f'{threading.active_count()=}')
+        time.sleep(1)
+    sink.close()
+    print('now send file')
+    send_file(0, remote_path=args.output_dir)
+    while threading.active_count() > 2:
+        print(f'{threading.active_count()=}')
+        time.sleep(1)
     """"""
 
 
