@@ -248,10 +248,13 @@ def test_convert(args):
     # dataloader = create_dataloaders('gs://shadow-center-2b/imagenet-generated-100steps/shards-00001.tar',valid_batch_size=per_process_generate_data)
     for i, (x, y) in enumerate(dataloader):
         x, y = jax.tree_util.tree_map(np.asarray, (x, y))
+
+        y_shard = convert_to_global_array( y)
         x_shard = convert_to_global_array(x, x_sharding)
         logits = test_sharding_jit(x_shard, converted_jax_params, )
 
         x = collect_process_data(x_shard)
+        y=collect_process_data(y_shard)
         logits_local = collect_process_data(logits)
 
         model_predict_label = np.array(logits_local).argmax(axis=1)
