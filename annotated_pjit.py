@@ -268,7 +268,7 @@ def test_convert(args):
                              x_local, y_local, logits_local, sink, data_per_shard)).start()
 
 
-        if i%100==0:
+        if i%10==0:
             send_file(remote_path=args.output_dir)
 
     while threading.active_count() > 2:
