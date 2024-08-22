@@ -1,215 +1,120 @@
 import functools
-import glob
+import itertools
+import os.path
 import threading
-import time
-from pathlib import Path
-from jax._src.array import Shard
-import PIL.Image
+
 import einops
-import numpy as np
-import torch
-import tqdm
-from diffusers import FlaxAutoencoderKL
-from flax.core import FrozenDict
-from flax.jax_utils import replicate
-from flax.training.common_utils import shard_prng_key
-from jax.experimental import mesh_utils
-from jax.experimental.shard_map import shard_map
-from jax.sharding import Mesh, NamedSharding, PartitionSpec
-
-from convert_torch_to_jax import convert_torch_to_jax
-from diffusion import create_diffusion_sample
-from ref.download import download_model
-from ref.model_dit_torch import DiT_XL_2 as DiT_S_2_torch
-from models import DiT_XL_2 as DiT_S_2_jax
 import jax
-import jax.numpy as jnp
-import flax
-import flax.linen as nn
-import os
 import matplotlib.pyplot as plt
-from prefetch import convert_to_global_array
-from torchvision.utils import save_image
+import numpy as np
+import timm
+import torch
 import webdataset as wds
-from jax.experimental.multihost_utils import global_array_to_host_local_array, host_local_array_to_global_array
+import glob
+from timm.models.vision_transformer import VisionTransformer
+from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
+from torch.utils.data import DataLoader
+from torchvision.transforms import Normalize
+from webdataset.shardlists import expand_urls
+import torchvision.transforms.v2 as T
+
+from model_vit.convert_pytorch_to_flax import convert_pytorch_to_flax_vit
+from model_vit.modeling import ViT
+
+#
+# while threading.active_count() > 1:
+#     print(threading.active_count())
+# '/home/jtitor/PycharmProjects/jax-dit/shard_path2/shards-{00000..00008}.tar',
+""""""
+
+urls = ['/home/jtitor/PycharmProjects/jax-dit/shard_path2/shards-{00000..00008}.tar',
+        '/home/jtitor/PycharmProjects/jax-dit/shard_path2/shards-{00000..00008}.tar']
+files = []
+for url in urls:
+    files.extend(expand_urls(url))
+
+files = [f'/home/jtitor/test_cp/{x}' for x in os.listdir('/home/jtitor/test_cp')]
+# print(files)
+
+# files='/home/jtitor/PycharmProjects/jax-dit/shard_path2/shards-{00000..00008}.tar'
+
+# files = '/root/ADV-ViT/shard_path2/shards-{00000..00001}.tar'
+valid_transforms = T.Compose([
+    T.Resize(int(224 / 0.875), interpolation=3),
+    T.CenterCrop(224),
+    T.PILToTensor(),
+])
+
+dataset = wds.DataPipeline(
+    wds.SimpleShardList(files, seed=1),
+    # itertools.cycle,
+    # wds.detshuffle(),
+    # wds.slice(jax.process_index(), None, jax.process_count()),
+    # wds.split_by_worker,
+    wds.tarfile_to_samples(),
+    # wds.detshuffle(),
+    wds.decode("pil", handler=wds.ignore_and_continue),
+    wds.to_tuple("jpg", "cls", handler=wds.ignore_and_continue),
+    # partial(repeat_samples, repeats=args.augment_repeats),
+    wds.map_tuple(valid_transforms, torch.tensor),
+)
+
+dataloader = DataLoader(dataset, batch_size=64)
 
 
-def send_file(keep_files=5):
-    files = glob.glob('shard_path/*.tar')
-    files.sort(key=lambda x: os.path.getctime(x), )
+def get_model_vit():
+    model = timm.create_model('vit_large_patch14_clip_224.openai_ft_in12k_in1k', pretrained=True)
 
-    if len(files) == 0:
-        raise NotImplemented()
-    elif len(files) <= keep_files:
-        pass
-    else:
+    params = convert_pytorch_to_flax_vit(model.state_dict(), model.blocks[0].attn.num_heads)
 
-        if keep_files == 0:
-            files = files
-        else:
-            files = files[:-keep_files]
-        print(files)
-        for file in files:
-            base_name = os.path.basename(file)
-            dst = 'shard_path2'
-            os.makedirs(dst, exist_ok=True)
-            print(base_name, files)
-
-            def send_data_thread(src_file, dst_file):
-                with wds.gopen(src_file, "rb") as fp_local:
-                    data_to_write = fp_local.read()
-
-                with wds.gopen(f'{dst_file}', "wb") as fp:
-                    fp.write(data_to_write)
-                    fp.flush()
-
-                os.remove(src_file)
-
-            threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
-
-
-def test_sharding(rng, params, vae_params, class_label: int, diffusion_sample, vae, shape, cfg_scale: float = 1.5):
-    new_rng, local_rng, sample_rng, class_rng = jax.random.split(rng[0], 4)
-
-    # class_labels = jnp.ones((shape[0],), dtype=jnp.int32) * class_label
-
-    class_labels = jax.random.randint(class_rng, (shape[0],), 0, 999)
-    print(class_labels)
-
-    z = jax.random.normal(key=local_rng, shape=shape)
-    z = jnp.concat([z, z], axis=0)
-    y = jnp.array(class_labels)
-    y_null = jnp.array([1000] * shape[0])
-    y = jnp.concat([y, y_null], axis=0)
-    model_kwargs = dict(y=y, cfg_scale=cfg_scale)
-
-    rng = rng.at[0].set(new_rng)
-
-    latent = diffusion_sample.ddim_sample_loop(params, z.shape, z, clip_denoised=False, model_kwargs=model_kwargs,
-                                               key=sample_rng, eta=0.0)
-
-    latent, _ = jnp.split(latent, 2, axis=0)
-
-    latent = latent / 0.18215
-    image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
-    image = image / 2 + 0.5
-
-    image = jnp.clip(image, 0, 1)
-    # image=jnp.array(image,dtype=jnp.uint8)
-
-    image = einops.rearrange(image, 'b c h w->b h w c')
-    return rng, image, class_labels
-
-
-def create_state():
-    b, h, w, c = shape = 1, 32, 32, 4
-    rng = jax.random.PRNGKey(42)
-    # x = jnp.ones(shape)
-
-    x = jax.random.normal(rng, shape)
-    t = jnp.ones((b,), dtype=jnp.int32) * 999
-    y = jnp.ones((b,), dtype=jnp.int32)
-
-    b, h, w, c = 1, 32, 32, 4
-    rng = jax.random.PRNGKey(2036)
-    class_labels = [0]
-    n = len(class_labels)
-    z = jax.random.normal(key=rng, shape=(n, h, w, c))
-    x = jnp.concat([z, z], axis=0)
-    y = jnp.array(class_labels)
-    y_null = jnp.array([1000] * n)
-    y = jnp.concat([y, y_null], axis=0)
-
-    model = DiT_S_2_jax(out_channels=c, labels=1000, image_size=h, condition=True)
-    # params = model.init(rng, x, t, y, train=True)['params']
-
-    # model.apply({'params': params}, x, t, y)
-
-    # print(params.keys())
-
-    # jax.tree_util.tree_map_with_path(t_print, params['final_layer'])
-    # print()
-
-    model_torch = DiT_S_2_torch()
-
-    model_torch.load_state_dict(download_model('DiT-XL-2-256x256.pt'))
-
-    converted_jax_params = convert_torch_to_jax(model_torch.state_dict())
-    return model, converted_jax_params
-
-
-def test_convert():
-    print(f'{threading.active_count()=}')
-    # jax.distributed.initialize()
-    rng = jax.random.key(0)
-
-    device_count = jax.device_count()
-    mesh_shape = (device_count,)
-
-    device_mesh = mesh_utils.create_device_mesh(mesh_shape)
-    mesh = Mesh(device_mesh, axis_names=('data',))
-
-    def mesh_sharding(pspec: PartitionSpec) -> NamedSharding:
-        return NamedSharding(mesh, pspec)
-
-    class_label = 2
-
-    b, h, w, c = shape = 128, 32, 32, 4
-
-    # rng = jax.random.split(rng, num=jax.local_device_count())
-    rng = jax.random.split(rng, num=jax.device_count())
-
-    x = jnp.ones(shape)
-
-    x_sharding = mesh_sharding(PartitionSpec('data'))
-
-    def test_sharding2(rng):
-        return jnp.ones_like(x)
-
-    test_sharding_jit = shard_map(
-        test_sharding2,
-        mesh=mesh,
-        in_specs=(PartitionSpec('data'),),
-        out_specs=PartitionSpec('data')
-
+    vit_model = ViT(
+        patch_size=14,
+        layers=24,
+        dim=1024,
+        heads=16,
+        # pooling="gap",
+        # posemb="sincos2d"
     )
-    x = test_sharding_jit(x)
 
-    local_devices = jax.local_devices()
-    for shard in x.addressable_shards:
-        device = shard.device
-        local_shard = shard.data
-        images = []
-        if device in local_devices:
+    return vit_model, params
 
-            if jax.process_index() == 0:
-                print(device, local_devices)
-
-            images.append(np.array(local_shard))
-    images = np.stack(images, axis=0)
-    print(images.shape)
+@jax.jit
+def infer(x):
+    return vit_model.apply({'params': params['model']}, x, det=True, )
 
 
-def show_image(img, i):
-    print(img.max(), img.min())
-    plt.imshow(np.array(img[0]))
-    plt.show()
+vit_model, params = get_model_vit()
+for i, data in enumerate(dataloader):
+    x, y = data
+    x = x.to(torch.float32) / 255
 
-    os.makedirs('imgs', exist_ok=True)
+    x_jax = einops.rearrange(x, 'b c h w ->b h w c ')
 
-    plt.savefig(f'imgs/{i}.png')
-    plt.close()
+    y = y
 
+    x_jax = x_jax.detach().numpy()
 
-def save_image_torch(img, i):
-    print(img.max(), img.min())
-    img = np.array(img[:32])
-    img = einops.rearrange(img, 'b  h w c->b  c h w ')
-    os.makedirs('imgs', exist_ok=True)
-    img = torch.from_numpy(img)
-    print(img.shape)
-    save_image(img, f'imgs/{i}.png')
+    logit_jax = infer(x_jax)
 
+    model_predict_label = np.array(logit_jax).argmax(axis=1)
+    # print(model_predict_label,y)
+    # print(model_predict_label.dtype,y.dtype)
+    y = np.array(y)
 
-if __name__ == "__main__":
-    test_convert()
+    print(np.sum(model_predict_label == y) / x.shape[0])
+
+# model=model.cuda()
+# with torch.no_grad():
+#     for i, data in enumerate(dataloader):
+#         x, y = data
+#         # print(data['cls'])
+#         # print(data)
+#         # plt.imshow(data[0])
+#         # plt.show()
+#         x = x.cuda().to(torch.float32) / 255
+#         y = y.cuda()
+#         logits = model(x)
+#
+#         model_predict_label = logits.argmax(dim=1)
+#
+#         print((model_predict_label == y).sum() / x.shape[0])

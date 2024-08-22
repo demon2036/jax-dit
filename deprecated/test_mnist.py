@@ -82,7 +82,7 @@ def train():
     ])
 
     # dataset = MNIST('./data', train=True, download=True, transform=transform)
-    dataset = CIFAR10('./data', train=True, download=True, transform=transform)
+    dataset = CIFAR10('../data', train=True, download=True, transform=transform)
     dataloader = DataLoader(dataset, b, shuffle=True, drop_last=True, num_workers=16, persistent_workers=True)
 
     @partial(jax.pmap, axis_name='batch')
@@ -161,7 +161,7 @@ def sample_fn(diffusion_sample, params, i):
     plt.imshow(np.array(img[0]))
     plt.show()
 
-    os.makedirs('imgs', exist_ok=True)
+    os.makedirs('../imgs', exist_ok=True)
 
     plt.savefig(f'imgs/{i}.png')
     plt.close()

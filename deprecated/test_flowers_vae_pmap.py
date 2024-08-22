@@ -253,7 +253,7 @@ def show_image(img, i):
 
     img = np.array(img)
     img = torch.from_numpy(img)
-    os.makedirs('imgs', exist_ok=True)
+    os.makedirs('../imgs', exist_ok=True)
     save_image(img, f'imgs/{i}.png')
 
 

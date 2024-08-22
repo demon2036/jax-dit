@@ -36,7 +36,7 @@ def download_model(model_name):
     assert model_name in pretrained_models
     # local_path = f'pretrained_models/{model_name}'
     download_path='/root/pretrained_models'
-    # download_path = 'ref/pretrained_models'
+    download_path = 'ref/pretrained_models'
     local_path = f'{download_path}/{model_name}'
     if not os.path.isfile(local_path):
         os.makedirs(download_path, exist_ok=True)
