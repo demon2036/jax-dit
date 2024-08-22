@@ -59,7 +59,7 @@ def create_dataloaders(
     )
     valid_dataloader = DataLoader(
         dataset,
-        batch_size=(batch_size := valid_batch_size // jax.process_count()),
+        batch_size=valid_batch_size,
         num_workers=valid_loader_workers,
         # collate_fn=partial(collate_and_pad, batch_size=batch_size),
         drop_last=False,

@@ -234,6 +234,11 @@ def test_convert(args):
         # maxsize=shard_size,
     )
 
+    # print(per_process_generate_data)
+    # while True:
+    #     pass
+
+
     # dataloader = create_dataloaders('shard_path2/imagenet-generated-50steps_shards-01599.tar', valid_batch_size=64)
     dataloader = create_dataloaders('gs://shadow-center-2b/imagenet-generated-100steps/shards-{00000..06399}.tar',
                                     valid_batch_size=per_process_generate_data)
@@ -241,10 +246,9 @@ def test_convert(args):
         x, y = jax.tree_util.tree_map(np.asarray, (x, y))
         x_shard = convert_to_global_array(x, x_sharding)
 
-        print(x_shard.shape,x.shape)
+        # print(x_shard.shape,x.shape)
 
-        while True:
-            pass
+
 
         logits = test_sharding_jit(x_shard, converted_jax_params, )
 
@@ -255,6 +259,10 @@ def test_convert(args):
         y = np.array(y)
 
         print(np.sum(model_predict_label == y) / x.shape[0],x.shape)
+
+
+        while True:
+            pass
 
     #     threading.Thread(target=thread_write,
     #                      args=(
