@@ -208,7 +208,7 @@ def test_convert(args):
     test_sharding_jit = shard_map(
         functools.partial(test_sharding, vit_model=model),
         mesh=mesh,
-        in_specs=(PartitionSpec('data'),PartitionSpec(None)),
+        in_specs=(PartitionSpec('data'), PartitionSpec(None)),
         out_specs=PartitionSpec('data')
 
     )
@@ -238,17 +238,15 @@ def test_convert(args):
     # while True:
     #     pass
 
-
     # dataloader = create_dataloaders('shard_path2/imagenet-generated-50steps_shards-01599.tar', valid_batch_size=64)
-    dataloader = create_dataloaders('gs://shadow-center-2b/imagenet-generated-100steps/shards-{00000..06399}.tar',
-                                    valid_batch_size=per_process_generate_data)
+    dataloader = create_dataloaders('gs://shadow-center-2b/imagenet-generated-100steps/imagenet-generated-50steps_shards-01599.tar', valid_batch_size=64)
+    # dataloader = create_dataloaders('gs://shadow-center-2b/imagenet-generated-100steps/shards-{00000..06399}.tar',
+    #                                 valid_batch_size=per_process_generate_data)
     for i, (x, y) in enumerate(dataloader):
         x, y = jax.tree_util.tree_map(np.asarray, (x, y))
         x_shard = convert_to_global_array(x, x_sharding)
 
         # print(x_shard.shape,x.shape)
-
-
 
         logits = test_sharding_jit(x_shard, converted_jax_params, )
 
@@ -258,8 +256,7 @@ def test_convert(args):
         model_predict_label = np.array(logits_local).argmax(axis=1)
         y = np.array(y)
 
-        print(np.sum(model_predict_label == y) / x.shape[0],x.shape)
-
+        print(np.sum(model_predict_label == y) / x.shape[0], x.shape)
 
         while True:
             pass
