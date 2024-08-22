@@ -41,6 +41,7 @@ from test_dataset import create_dataloaders
 
 counter = 0
 shard_idx = 0
+
 lock = threading.Lock()
 
 
@@ -266,7 +267,9 @@ def test_convert(args):
                          args=(
                              x_local, y_local, logits_local, sink, data_per_shard)).start()
 
-        send_file(remote_path=args.output_dir)
+
+        if i%100==0:
+            send_file(remote_path=args.output_dir)
 
     while threading.active_count() > 2:
         print(f'{threading.active_count()=}')
