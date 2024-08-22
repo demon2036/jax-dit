@@ -208,7 +208,7 @@ def test_convert(args):
     test_sharding_jit = shard_map(
         functools.partial(test_sharding, vit_model=model),
         mesh=mesh,
-        in_specs=PartitionSpec('data'),
+        in_specs=(PartitionSpec('data'),PartitionSpec(None)),
         out_specs=PartitionSpec('data')
 
     )
