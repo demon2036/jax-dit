@@ -240,6 +240,12 @@ def test_convert(args):
     for i, (x, y) in enumerate(dataloader):
         x, y = jax.tree_util.tree_map(np.asarray, (x, y))
         x_shard = convert_to_global_array(x, x_sharding)
+
+        print(x_shard.shape,x.shape)
+
+        while True:
+            pass
+
         logits = test_sharding_jit(x_shard, converted_jax_params, )
 
         x = collect_process_data(x_shard)
@@ -250,21 +256,21 @@ def test_convert(args):
 
         print(np.sum(model_predict_label == y) / x.shape[0],x.shape)
 
-        threading.Thread(target=thread_write,
-                         args=(
-                             x, y, logits_local, sink, data_per_shard)).start()
-
-        send_file(remote_path=args.output_dir)
-
-    while threading.active_count() > 2:
-        print(f'{threading.active_count()=}')
-        time.sleep(1)
-    sink.close()
-    print('now send file')
-    send_file(0, remote_path=args.output_dir)
-    while threading.active_count() > 2:
-        print(f'{threading.active_count()=}')
-        time.sleep(1)
+    #     threading.Thread(target=thread_write,
+    #                      args=(
+    #                          x, y, logits_local, sink, data_per_shard)).start()
+    #
+    #     send_file(remote_path=args.output_dir)
+    #
+    # while threading.active_count() > 2:
+    #     print(f'{threading.active_count()=}')
+    #     time.sleep(1)
+    # sink.close()
+    # print('now send file')
+    # send_file(0, remote_path=args.output_dir)
+    # while threading.active_count() > 2:
+    #     print(f'{threading.active_count()=}')
+    #     time.sleep(1)
     """"""
 
 
