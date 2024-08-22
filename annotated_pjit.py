@@ -254,10 +254,8 @@ def test_convert(args):
                          args=(
                              x, y, logits_local, sink, data_per_shard)).start()
 
-
-
         send_file(remote_path=args.output_dir)
-    """
+
     while threading.active_count() > 2:
         print(f'{threading.active_count()=}')
         time.sleep(1)
@@ -267,7 +265,7 @@ def test_convert(args):
     while threading.active_count() > 2:
         print(f'{threading.active_count()=}')
         time.sleep(1)
-    """
+    """"""
 
 
 if __name__ == "__main__":
