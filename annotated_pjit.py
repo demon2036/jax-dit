@@ -253,18 +253,16 @@ def test_convert(args):
         x_shard = convert_to_global_array(x, x_sharding)
         logits = test_sharding_jit(x_shard, converted_jax_params, )
 
-        x = collect_process_data(x_shard)
-        y = collect_process_data(y_shard)
+        x_local = collect_process_data(x_shard)
+        y_local = collect_process_data(y_shard)
         logits_local = collect_process_data(logits)
 
         model_predict_label = np.array(logits_local).argmax(axis=1)
-        y = np.array(y)
+        print(np.sum(model_predict_label == y_local) / x.shape[0], x.shape)
 
-        print(np.sum(model_predict_label == y) / x.shape[0], x.shape)
-
-    #     threading.Thread(target=thread_write,
-    #                      args=(
-    #                          x, y, logits_local, sink, data_per_shard)).start()
+        threading.Thread(target=thread_write,
+                         args=(
+                             x_local, y_local, logits_local, sink, data_per_shard)).start()
     #
     #     send_file(remote_path=args.output_dir)
     #
