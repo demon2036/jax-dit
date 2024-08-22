@@ -90,28 +90,30 @@ lock = threading.Lock()
 def thread_write(images, class_labels, logits, sink, data_per_shard):
     global counter
     global shard_idx
+    global  lock
+
     images = einops.rearrange(images, ' b c h w ->b h w c')
     images = np.asarray(images, dtype=np.uint8)
     predict = logits.argmax(axis=1)
     correct_mask = class_labels == predict
     images = images[correct_mask]
     class_labels = class_labels[correct_mask]
+    with lock:
+        for img, cls_label in zip(images, class_labels):
+            sink.write({
+                "__key__": "%010d" % counter,
+                "jpg": PIL.Image.fromarray(img),
+                "cls": int(cls_label),
+            })
+            counter += 1
 
-    for img, cls_label in zip(images, class_labels):
-        sink.write({
-            "__key__": "%010d" % counter,
-            "jpg": PIL.Image.fromarray(img),
-            "cls": int(cls_label),
-        })
-        counter += 1
+            if counter >= data_per_shard:
+                counter = 0
+                shard_idx += 1
+                sink.shard = jax.process_index() + shard_idx * jax.process_count()
 
-        if counter >= data_per_shard:
-            counter = 0
-            shard_idx += 1
-            sink.shard = jax.process_index() + shard_idx * jax.process_count()
-
-    if jax.process_index() == 0:
-        print(counter, images.shape)
+        if jax.process_index() == 0:
+            print(counter, images.shape)
 
 
 def send_file(keep_files=5, remote_path='shard_path2'):
