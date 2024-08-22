@@ -259,7 +259,6 @@ def test_convert(args):
         print(np.sum(model_predict_label == y) / x.shape[0], x.shape)
 
 
-
     #     threading.Thread(target=thread_write,
     #                      args=(
     #                          x, y, logits_local, sink, data_per_shard)).start()
