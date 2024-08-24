@@ -209,7 +209,7 @@ def test_convert(args):
 
     test_sharding_jit = shard_map(
         functools.partial(test_sharding, shape=shape, diffusion_sample=diffusion_sample,
-                          vae=vae),
+                          vae=vae,cfg_scale=args.cfg),
         mesh=mesh,
         in_specs=(PartitionSpec('data'), PartitionSpec(None),
                   PartitionSpec(None), PartitionSpec()
@@ -336,7 +336,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # parser.add_argument("--output-dir", default="shard_path2")
     parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps")
-    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--seed", type=int, default=1)
+    parser.add_argument("--cfg", type=float, default=2.0)
     parser.add_argument("--data-per-shard", type=int, default=2048)
     parser.add_argument("--per-device-batch", type=int, default=128)
     test_convert(parser.parse_args())
