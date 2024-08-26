@@ -264,7 +264,7 @@ def test_convert(args):
         # maxsize=shard_size,
     )
 
-    for label in range(0, 200):
+    for label in range(0, args.per_process_shards):
 
         for i in tqdm.tqdm(range(iter_per_shard), disable=not jax.process_index() == 0):
             rng, images, class_labels = test_sharding_jit(rng, converted_jax_params, vae_params, label)
@@ -335,9 +335,11 @@ def save_image_torch(img, i):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # parser.add_argument("--output-dir", default="shard_path2")
-    parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.75")
-    parser.add_argument("--seed", type=int, default=2)
-    parser.add_argument("--cfg", type=float, default=1.75)
+    # parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.75")
+    parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.5")
+    parser.add_argument("--seed", type=int, default=3)
+    parser.add_argument("--cfg", type=float, default=1.5)
     parser.add_argument("--data-per-shard", type=int, default=2048)
+    parser.add_argument("--per-process-shards", type=int, default=500)
     parser.add_argument("--per-device-batch", type=int, default=128)
     test_convert(parser.parse_args())
