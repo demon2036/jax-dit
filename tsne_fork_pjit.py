@@ -72,9 +72,9 @@ def send_file(keep_files=5, remote_path='shard_path2'):
             threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
 
 
-def test_sharding(rng, params, vae_params, class_label: int, diffusion_sample, vae, shape, cfg_scale: float = 1.5):
-    new_rng, local_rng, sample_rng, class_rng = jax.random.split(rng[0], 4)
-
+def test_sharding(rng, params, vae_params,sample_rng, class_label: int, diffusion_sample, vae, shape, cfg_scale: float = 1.5):
+    new_rng, local_rng, class_rng = jax.random.split(rng[0], 3)
+    new_sample_rng,sample_rng= jax.random.split(sample_rng[0], 2)
     # class_labels = jnp.ones((shape[0],), dtype=jnp.int32) * class_label
 
     class_labels = jax.random.randint(class_rng, (shape[0],), 0, 999)
@@ -88,9 +88,10 @@ def test_sharding(rng, params, vae_params, class_label: int, diffusion_sample, v
     model_kwargs = dict(y=y, cfg_scale=cfg_scale)
 
     rng = rng.at[0].set(new_rng)
+    sample_rng=sample_rng.at[0].set(new_sample_rng)
 
     latent = diffusion_sample.ddim_sample_loop(params, z.shape, z, clip_denoised=False, model_kwargs=model_kwargs,
-                                               key=sample_rng, eta=0.0)
+                                               key=sample_rng, eta=0.2)
 
     latent, _ = jnp.split(latent, 2, axis=0)
 
@@ -102,7 +103,7 @@ def test_sharding(rng, params, vae_params, class_label: int, diffusion_sample, v
     # image=jnp.array(image,dtype=jnp.uint8)
 
     image = einops.rearrange(image, 'b c h w->b h w c')
-    return rng, image, class_labels
+    return rng,sample_rng, image, class_labels
 
 
 def create_state():
@@ -160,7 +161,8 @@ def collect_process_data(data):
 def test_convert(args):
     print(f'{threading.active_count()=}')
     # jax.distributed.initialize()
-    rng = jax.random.key(args.seed)
+    rng = jax.random.PRNGKey(args.seed)
+    sample_rng = jax.random.PRNGKey(args.seed)
 
     device_count = jax.device_count()
     mesh_shape = (device_count,)
@@ -177,6 +179,7 @@ def test_convert(args):
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
     rng = jax.random.split(rng, num=jax.device_count())
+    sample_rng=jax.random.split(sample_rng, num=jax.device_count())
 
     x = jnp.ones(shape)
 
@@ -267,7 +270,7 @@ def test_convert(args):
     for label in range(0, args.per_process_shards):
 
         for i in tqdm.tqdm(range(iter_per_shard), disable=not jax.process_index() == 0):
-            rng, images, class_labels = test_sharding_jit(rng, converted_jax_params, vae_params, label)
+            rng,sample_rng, images, class_labels = test_sharding_jit(rng, converted_jax_params, vae_params,sample_rng, label)
             """
             batch_size, *_ = images.shape
             per_process_batch = batch_size // jax.process_count()
@@ -336,10 +339,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # parser.add_argument("--output-dir", default="shard_path2")
     # parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.75")
-    parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.5")
+    parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.5-eta0.2")
     parser.add_argument("--seed", type=int, default=3)
+    parser.add_argument("--sample-seed", type=int, default=2036)
     parser.add_argument("--cfg", type=float, default=1.5)
     parser.add_argument("--data-per-shard", type=int, default=2048)
-    parser.add_argument("--per-process-shards", type=int, default=500)
+    parser.add_argument("--per-process-shards", type=int, default=200)
     parser.add_argument("--per-device-batch", type=int, default=128)
     test_convert(parser.parse_args())
