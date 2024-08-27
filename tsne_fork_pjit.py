@@ -74,11 +74,11 @@ def send_file(keep_files=5, remote_path='shard_path2'):
 
 def test_sharding(rng,sample_rng, params, vae_params, class_label: int, diffusion_sample, vae, shape, cfg_scale: float = 1.5):
     new_rng, local_rng, class_rng = jax.random.split(rng[0], 3)
-    new_sample_rng,sample_rng= jax.random.split(sample_rng[0], 2)
+    new_sample_rng,sample_rng_do= jax.random.split(sample_rng[0], 2)
     # class_labels = jnp.ones((shape[0],), dtype=jnp.int32) * class_label
 
     class_labels = jax.random.randint(class_rng, (shape[0],), 0, 999)
-    print(class_labels)
+    print(rng,sample_rng)
 
     z = jax.random.normal(key=local_rng, shape=shape)
     z = jnp.concat([z, z], axis=0)
@@ -87,11 +87,10 @@ def test_sharding(rng,sample_rng, params, vae_params, class_label: int, diffusio
     y = jnp.concat([y, y_null], axis=0)
     model_kwargs = dict(y=y, cfg_scale=cfg_scale)
 
-    rng = rng.at[0].set(new_rng)
-    sample_rng=sample_rng.at[0].set(new_sample_rng)
+
 
     latent = diffusion_sample.ddim_sample_loop(params, z.shape, z, clip_denoised=False, model_kwargs=model_kwargs,
-                                               key=sample_rng, eta=0.2)
+                                               key=sample_rng_do, eta=0.2)
 
     latent, _ = jnp.split(latent, 2, axis=0)
 
@@ -103,6 +102,10 @@ def test_sharding(rng,sample_rng, params, vae_params, class_label: int, diffusio
     # image=jnp.array(image,dtype=jnp.uint8)
 
     image = einops.rearrange(image, 'b c h w->b h w c')
+
+    rng = rng.at[0].set(new_rng)
+    sample_rng=sample_rng.at[0].set(new_sample_rng)
+
     return rng,sample_rng, image, class_labels
 
 
@@ -214,7 +217,8 @@ def test_convert(args):
         functools.partial(test_sharding, shape=shape, diffusion_sample=diffusion_sample,
                           vae=vae,cfg_scale=args.cfg),
         mesh=mesh,
-        in_specs=(PartitionSpec('data'), PartitionSpec('data'),PartitionSpec(None),
+        in_specs=(PartitionSpec('data'), PartitionSpec('data'),
+                  PartitionSpec(None),
                   PartitionSpec(None), PartitionSpec()
                   ),
         out_specs=PartitionSpec('data')
