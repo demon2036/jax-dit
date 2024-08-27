@@ -72,7 +72,7 @@ def send_file(keep_files=5, remote_path='shard_path2'):
             threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
 
 
-def test_sharding(rng, params, vae_params,sample_rng, class_label: int, diffusion_sample, vae, shape, cfg_scale: float = 1.5):
+def test_sharding(rng,sample_rng, params, vae_params, class_label: int, diffusion_sample, vae, shape, cfg_scale: float = 1.5):
     new_rng, local_rng, class_rng = jax.random.split(rng[0], 3)
     new_sample_rng,sample_rng= jax.random.split(sample_rng[0], 2)
     # class_labels = jnp.ones((shape[0],), dtype=jnp.int32) * class_label
@@ -214,7 +214,7 @@ def test_convert(args):
         functools.partial(test_sharding, shape=shape, diffusion_sample=diffusion_sample,
                           vae=vae,cfg_scale=args.cfg),
         mesh=mesh,
-        in_specs=(PartitionSpec('data'), PartitionSpec(None),
+        in_specs=(PartitionSpec('data'), PartitionSpec('data'),PartitionSpec(None),
                   PartitionSpec(None), PartitionSpec()
                   ),
         out_specs=PartitionSpec('data')
@@ -270,7 +270,7 @@ def test_convert(args):
     for label in range(0, args.per_process_shards):
 
         for i in tqdm.tqdm(range(iter_per_shard), disable=not jax.process_index() == 0):
-            rng,sample_rng, images, class_labels = test_sharding_jit(rng, converted_jax_params, vae_params,sample_rng, label)
+            rng,sample_rng, images, class_labels = test_sharding_jit(rng,sample_rng, converted_jax_params, vae_params, label)
             """
             batch_size, *_ = images.shape
             per_process_batch = batch_size // jax.process_count()
