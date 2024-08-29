@@ -157,13 +157,14 @@ def send_file(keep_files=2, remote_path='shard_path2',rng=None,sample_rng=None,l
                 # sample_rng=process_allgather(sample_rng)
 
                 ckpt ={
-                            # 'rng': rng,
-                            # 'sample_rng': sample_rng,
+                            'rng': rng,
+                            'sample_rng': sample_rng,
                             'label': label
                         }
                 # orbax_checkpointer = ocp.PyTreeCheckpointer()
                 save_args = orbax_utils.save_args_from_target(ckpt)
                 checkpointer.save(f'{dst}/resume.json', ckpt, save_args=save_args, force=True)
+                checkpointer.wait_until_finished()
 
 
 
