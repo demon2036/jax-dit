@@ -36,6 +36,7 @@ import webdataset as wds
 from jax.experimental.multihost_utils import global_array_to_host_local_array,process_allgather
 import orbax.checkpoint as ocp
 
+lock = threading.Lock()
 
 jax.distributed.initialize()
 checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
@@ -43,65 +44,66 @@ checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
 
 
 def send_file(keep_files=2, remote_path='shard_path2',rng=None,sample_rng=None,label=None):
-    files = glob.glob('shard_path/*.tar')
-    files.sort(key=lambda x: os.path.getctime(x), )
+    with lock:
+        files = glob.glob('shard_path/*.tar')
+        files.sort(key=lambda x: os.path.getctime(x), )
 
-    if len(files) == 0:
-        raise NotImplemented()
-    elif len(files) <= keep_files:
-        pass
-    else:
-
-        if keep_files == 0:
-            files = files
+        if len(files) == 0:
+            raise NotImplemented()
+        elif len(files) <= keep_files:
+            pass
         else:
-            files = files[:-keep_files]
-        # print(files)
-        dst = remote_path
-        if 'gs' not in remote_path:
-            dst = os.getcwd() + '/' + dst
-            os.makedirs(dst, exist_ok=True)
 
-        for file in files:
-            base_name = os.path.basename(file)
+            if keep_files == 0:
+                files = files
+            else:
+                files = files[:-keep_files]
+            # print(files)
+            dst = remote_path
+            if 'gs' not in remote_path:
+                dst = os.getcwd() + '/' + dst
+                os.makedirs(dst, exist_ok=True)
 
-            if jax.process_index() == 0:
-                print(base_name, files)
+            for file in files:
+                base_name = os.path.basename(file)
 
-            def send_data_thread(src_file, dst_file):
-                with wds.gopen(src_file, "rb") as fp_local:
-                    data_to_write = fp_local.read()
+                if jax.process_index() == 0:
+                    print(base_name, files)
 
-                with wds.gopen(f'{dst_file}', "wb") as fp:
-                    fp.write(data_to_write)
-                    # fp.flush()
+                def send_data_thread(src_file, dst_file):
+                    with wds.gopen(src_file, "rb") as fp_local:
+                        data_to_write = fp_local.read()
 
-                os.remove(src_file)
+                    with wds.gopen(f'{dst_file}', "wb") as fp:
+                        fp.write(data_to_write)
+                        # fp.flush()
 
-            send_data_thread(file, f'{dst}/{base_name}')
-            # threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
+                    os.remove(src_file)
 
-        # if rng is not None:
-        #     rng=process_allgather(rng)
-        #     sample_rng=process_allgather(sample_rng)
-        #     print(rng.shape,sample_rng.shape)
-        #     # with wds.gopen(f'{dst}/resume.json', "wb") as fp:
-        #     #     fp.write(
-        #     #         flax.serialization.msgpack_serialize({
-        #     #             'rng': rng,
-        #     #             'sample_rng': sample_rng,
-        #     #             'label': label
-        #     #         })
-        #     #     )
-        #
-        #     ckpt ={
-        #                 'rng': rng,
-        #                 'sample_rng': sample_rng,
-        #                 'label': label
-        #             }
-        #     # orbax_checkpointer = ocp.PyTreeCheckpointer()
-        #     save_args = orbax_utils.save_args_from_target(ckpt)
-        #     checkpointer.save(f'{dst}/resume.json', ckpt, save_args=save_args, force=True)
+                send_data_thread(file, f'{dst}/{base_name}')
+                # threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
+
+            if rng is not None:
+                rng=process_allgather(rng)
+                sample_rng=process_allgather(sample_rng)
+                print(rng.shape,sample_rng.shape)
+                # with wds.gopen(f'{dst}/resume.json', "wb") as fp:
+                #     fp.write(
+                #         flax.serialization.msgpack_serialize({
+                #             'rng': rng,
+                #             'sample_rng': sample_rng,
+                #             'label': label
+                #         })
+                #     )
+
+                ckpt ={
+                            'rng': rng,
+                            'sample_rng': sample_rng,
+                            'label': label
+                        }
+                # orbax_checkpointer = ocp.PyTreeCheckpointer()
+                save_args = orbax_utils.save_args_from_target(ckpt)
+                checkpointer.save(f'{dst}/resume.json', ckpt, save_args=save_args, force=True)
 
 
 
