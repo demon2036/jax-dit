@@ -221,6 +221,9 @@ def test_convert(args):
 
     new_params=broadcast_one_to_all(new_params)
 
+    print(new_params)
+    while True:
+        pass
 
     # data=checkpointer.restore(dst)
     # print(data)
