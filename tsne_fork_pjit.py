@@ -219,8 +219,9 @@ def test_convert(args):
             dst = os.getcwd() + '/' + dst
         with wds.gopen(dst) as fp:
             new_params = flax.serialization.msgpack_restore(fp.read())
+            new_params = broadcast_one_to_all(new_params)
     barrier_wait()
-    new_params=broadcast_one_to_all(new_params)
+
 
     print(new_params)
     while True:
