@@ -272,10 +272,9 @@ def test_convert(args):
     device_count = jax.device_count()
     mesh_shape = (device_count,)
 
-    device_mesh = mesh_utils.create_device_mesh(mesh_shape,devices=list(rng.devices()))
+    device_mesh = mesh_utils.create_device_mesh(mesh_shape,)
     mesh = Mesh(device_mesh, axis_names=('data',))
 
-    print(device_mesh, mesh_shape)
 
 
     def mesh_sharding(pspec: PartitionSpec) -> NamedSharding:
@@ -283,6 +282,7 @@ def test_convert(args):
 
     x_sharding = mesh_sharding(PartitionSpec('data'))
     rng=jax.device_put(rng,x_sharding)
+    sample_rng=jax.device_put(sample_rng,x_sharding)
 
     class_label = 2
 
