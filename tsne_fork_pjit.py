@@ -84,10 +84,10 @@ def send_file(keep_files=2, remote_path='shard_path2',rng=None,sample_rng=None,l
                 # threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
 
             if rng is not None:
-                # checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
+                checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
                 # checkpointer = ocp.PyTreeCheckpointer()
-                # rng=process_allgather(rng)
-                # sample_rng=process_allgather(sample_rng)
+                rng=process_allgather(rng)
+                sample_rng=process_allgather(sample_rng)
                 print(rng.shape,sample_rng.shape)
                 with wds.gopen(f'{dst}/resume.json', "wb") as fp:
                     fp.write(
