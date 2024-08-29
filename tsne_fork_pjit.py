@@ -44,6 +44,72 @@ jax.distributed.initialize()
 
 
 
+# def send_file(keep_files=2, remote_path='shard_path2',rng=None,sample_rng=None,label=None):
+#     with lock:
+#         files = glob.glob('shard_path/*.tar')
+#         files.sort(key=lambda x: os.path.getctime(x), )
+#
+#         if len(files) == 0:
+#             raise NotImplemented()
+#         elif len(files) <= keep_files:
+#             pass
+#         else:
+#
+#             if keep_files == 0:
+#                 files = files
+#             else:
+#                 files = files[:-keep_files]
+#             # print(files)
+#             dst = remote_path
+#             if 'gs' not in remote_path:
+#                 dst = os.getcwd() + '/' + dst
+#                 os.makedirs(dst, exist_ok=True)
+#
+#             for file in files:
+#                 base_name = os.path.basename(file)
+#
+#                 if jax.process_index() == 0:
+#                     print(base_name, files)
+#
+#                 def send_data_thread(src_file, dst_file):
+#                     with wds.gopen(src_file, "rb") as fp_local:
+#                         data_to_write = fp_local.read()
+#
+#                     with wds.gopen(f'{dst_file}', "wb") as fp:
+#                         fp.write(data_to_write)
+#                         # fp.flush()
+#
+#                     os.remove(src_file)
+#
+#                 send_data_thread(file, f'{dst}/{base_name}')
+#                 # threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
+#
+#             if rng is not None:
+#                 checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
+#                 checkpointer.restore()
+#                 # checkpointer = ocp.PyTreeCheckpointer()
+#                 rng=process_allgather(rng)
+#                 sample_rng=process_allgather(sample_rng)
+#                 print(rng.shape,sample_rng.shape)
+#                 with wds.gopen(f'{dst}/resume.json', "wb") as fp:
+#                     fp.write(
+#                         flax.serialization.msgpack_serialize({
+#                             'rng': rng,
+#                             'sample_rng': sample_rng,
+#                             'label': label
+#                         })
+#                     )
+#
+#                 # ckpt ={
+#                 #             'rng': rng,
+#                 #             'sample_rng': sample_rng,
+#                 #             'label': label
+#                 #         }
+#                 # # orbax_checkpointer = ocp.PyTreeCheckpointer()
+#                 # save_args = orbax_utils.save_args_from_target(ckpt)
+#                 # checkpointer.save(f'{dst}/resume.json', ckpt, save_args=save_args, force=True)
+
+
 def send_file(keep_files=2, remote_path='shard_path2',rng=None,sample_rng=None,label=None):
     with lock:
         files = glob.glob('shard_path/*.tar')
@@ -86,30 +152,18 @@ def send_file(keep_files=2, remote_path='shard_path2',rng=None,sample_rng=None,l
 
             if rng is not None:
                 checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
-                checkpointer.restore()
                 # checkpointer = ocp.PyTreeCheckpointer()
-                rng=process_allgather(rng)
-                sample_rng=process_allgather(sample_rng)
-                print(rng.shape,sample_rng.shape)
-                with wds.gopen(f'{dst}/resume.json', "wb") as fp:
-                    fp.write(
-                        flax.serialization.msgpack_serialize({
-                            'rng': rng,
-                            'sample_rng': sample_rng,
+                # rng=process_allgather(rng)
+                # sample_rng=process_allgather(sample_rng)
+
+                ckpt ={
+                            # 'rng': rng,
+                            # 'sample_rng': sample_rng,
                             'label': label
-                        })
-                    )
-
-                # ckpt ={
-                #             'rng': rng,
-                #             'sample_rng': sample_rng,
-                #             'label': label
-                #         }
-                # # orbax_checkpointer = ocp.PyTreeCheckpointer()
-                # save_args = orbax_utils.save_args_from_target(ckpt)
-                # checkpointer.save(f'{dst}/resume.json', ckpt, save_args=save_args, force=True)
-
-
+                        }
+                # orbax_checkpointer = ocp.PyTreeCheckpointer()
+                save_args = orbax_utils.save_args_from_target(ckpt)
+                checkpointer.save(f'{dst}/resume.json', ckpt, save_args=save_args, force=True)
 
 
 
@@ -215,18 +269,18 @@ def test_convert(args):
 
     # if jax.process_index()==0:
 
-    dst=args.output_dir+'/'+'resume.json'
-    if 'gs' not in dst:
-        dst = os.getcwd() + '/' + dst
-    with wds.gopen(dst) as fp:
-        new_params = flax.serialization.msgpack_restore(fp.read())
-        new_params = broadcast_one_to_all(new_params)
+    # dst=args.output_dir+'/'+'resume.json'
+    # if 'gs' not in dst:
+    #     dst = os.getcwd() + '/' + dst
+    # with wds.gopen(dst) as fp:
+    #     new_params = flax.serialization.msgpack_restore(fp.read())
+    #     new_params = broadcast_one_to_all(new_params)
     # sync_global_devices('test')
 
 
-    print(new_params)
-    while True:
-        pass
+    # print(new_params)
+    # while True:
+    #     pass
 
     # data=checkpointer.restore(dst)
     # print(data)
@@ -386,7 +440,7 @@ def test_convert(args):
                                  local_images, local_class_labels, sink, label,
                                  True if i == iter_per_shard - 1 else False)).start()
 
-        threading.Thread(target=send_file,args=(5,args.output_dir,rng,sample_rng,label)).start()
+        threading.Thread(target=send_file,args=(0,args.output_dir,rng,sample_rng,label)).start()
 
         # send_file(remote_path=args.output_dir,rng=rng,sample_rng=sample_rng,label=label)
 
