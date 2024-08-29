@@ -279,7 +279,10 @@ def test_convert(args):
                   PartitionSpec(None),
                   PartitionSpec(None), PartitionSpec()
                   ),
-        out_specs=PartitionSpec('data')
+        out_specs=(
+            PartitionSpec(None),PartitionSpec(None),
+            PartitionSpec('data'),PartitionSpec('data'),
+        )
 
     )
 
