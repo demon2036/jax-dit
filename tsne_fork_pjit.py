@@ -33,7 +33,7 @@ import matplotlib.pyplot as plt
 from prefetch import convert_to_global_array
 from torchvision.utils import save_image
 import webdataset as wds
-from jax.experimental.multihost_utils import global_array_to_host_local_array,process_allgather
+from jax.experimental.multihost_utils import global_array_to_host_local_array,process_allgather,broadcast_one_to_all
 import orbax.checkpoint as ocp
 
 lock = threading.Lock()
@@ -211,10 +211,17 @@ def test_convert(args):
     sample_rng = jax.random.PRNGKey(args.sample_seed)
 
 
+    if jax.process_index()==0:
 
-    # dst=args.output_dir+'/'+'resume.json'
-    # if 'gs' not in dst:
-    #     dst = os.getcwd() + '/' + dst
+        dst=args.output_dir+'/'+'resume.json'
+        if 'gs' not in dst:
+            dst = os.getcwd() + '/' + dst
+        with wds.gopen('shard_path2/resume.json') as fp:
+        new_params = flax.serialization.msgpack_restore(fp.read())
+
+    new_params=broadcast_one_to_all(new_params)
+
+
     # data=checkpointer.restore(dst)
     # print(data)
 
