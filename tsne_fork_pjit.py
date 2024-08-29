@@ -273,29 +273,8 @@ def test_convert(args):
     if 'gs' not in dst:
         dst = os.getcwd() + '/' + dst
     ckpt=checkpointer.restore(dst)
-    rng=ckpt['rng']
-    sample_rng=ckpt['sample_rng']
-    # print(ckpt)
-    # while True:
-    #     pass
-
-
-    # print(new_params)
-    # while True:
-    #     pass
-
-    # data=checkpointer.restore(dst)
-    # print(data)
-
-
-    # while True:
-    #     1
-    # if args.resume:
-    #     with wds.gopen('shard_path2/resume.json') as fp:
-    #         new_params = flax.serialization.msgpack_restore(fp.read())
-    #         rng=
-    #         print(type(new_params['rng']))
-    # else:
+    rng=jnp.array(np.asarray(ckpt['rng']))
+    # sample_rng=ckpt['sample_rng']
 
 
 
