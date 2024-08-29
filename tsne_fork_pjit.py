@@ -81,27 +81,27 @@ def send_file(keep_files=2, remote_path='shard_path2',rng=None,sample_rng=None,l
             send_data_thread(file, f'{dst}/{base_name}')
             # threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
 
-        if rng is not None:
-            rng=process_allgather(rng)
-            sample_rng=process_allgather(sample_rng)
-            print(rng.shape,sample_rng.shape)
-            # with wds.gopen(f'{dst}/resume.json', "wb") as fp:
-            #     fp.write(
-            #         flax.serialization.msgpack_serialize({
-            #             'rng': rng,
-            #             'sample_rng': sample_rng,
-            #             'label': label
-            #         })
-            #     )
-
-            ckpt ={
-                        'rng': rng,
-                        'sample_rng': sample_rng,
-                        'label': label
-                    }
-            # orbax_checkpointer = ocp.PyTreeCheckpointer()
-            save_args = orbax_utils.save_args_from_target(ckpt)
-            checkpointer.save(f'{dst}/resume.json', ckpt, save_args=save_args, force=True)
+        # if rng is not None:
+        #     rng=process_allgather(rng)
+        #     sample_rng=process_allgather(sample_rng)
+        #     print(rng.shape,sample_rng.shape)
+        #     # with wds.gopen(f'{dst}/resume.json', "wb") as fp:
+        #     #     fp.write(
+        #     #         flax.serialization.msgpack_serialize({
+        #     #             'rng': rng,
+        #     #             'sample_rng': sample_rng,
+        #     #             'label': label
+        #     #         })
+        #     #     )
+        #
+        #     ckpt ={
+        #                 'rng': rng,
+        #                 'sample_rng': sample_rng,
+        #                 'label': label
+        #             }
+        #     # orbax_checkpointer = ocp.PyTreeCheckpointer()
+        #     save_args = orbax_utils.save_args_from_target(ckpt)
+        #     checkpointer.save(f'{dst}/resume.json', ckpt, save_args=save_args, force=True)
 
 
 
