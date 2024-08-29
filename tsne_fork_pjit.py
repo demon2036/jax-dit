@@ -147,24 +147,21 @@ def send_file(keep_files=2, remote_path='shard_path2',rng=None,sample_rng=None,l
 
                     os.remove(src_file)
 
-                send_data_thread(file, f'{dst}/{base_name}')
-                # threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
+                # send_data_thread(file, f'{dst}/{base_name}')
+                threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
 
             if rng is not None:
 
-                # checkpointer = ocp.PyTreeCheckpointer()
-                # rng=process_allgather(rng)
-                # sample_rng=process_allgather(sample_rng)
+
 
                 ckpt ={
                             'rng': rng,
                             'sample_rng': sample_rng,
-                            'label': label
+                            'label': label-keep_files
                         }
                 # orbax_checkpointer = ocp.PyTreeCheckpointer()
                 save_args = orbax_utils.save_args_from_target(ckpt)
                 checkpointer.save(f'{dst}/resume.json', ckpt, save_args=save_args, force=True)
-                checkpointer.wait_until_finished()
 
 
 
@@ -440,8 +437,8 @@ def test_convert(args):
                              args=(
                                  local_images, local_class_labels, sink, label,
                                  True if i == iter_per_shard - 1 else False)).start()
-        # send_file(0,args.output_dir,rng,sample_rng,label)
-        threading.Thread(target=send_file,args=(0,args.output_dir,rng,sample_rng,label,checkpointer)).start()
+        send_file(0,args.output_dir,rng,sample_rng,label)
+        # threading.Thread(target=send_file,args=(0,args.output_dir,rng,sample_rng,label,checkpointer)).start()
 
         # send_file(remote_path=args.output_dir,rng=rng,sample_rng=sample_rng,label=label)
 
