@@ -13,6 +13,7 @@ import tqdm
 from diffusers import FlaxAutoencoderKL
 from flax.core import FrozenDict
 from flax.jax_utils import replicate
+from flax.training import orbax_utils
 from flax.training.common_utils import shard_prng_key
 from jax.experimental import mesh_utils
 from jax.experimental.shard_map import shard_map
@@ -33,9 +34,13 @@ from prefetch import convert_to_global_array
 from torchvision.utils import save_image
 import webdataset as wds
 from jax.experimental.multihost_utils import global_array_to_host_local_array
+import orbax.checkpoint as ocp
+
+checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
 
 
-def send_file(keep_files=5, remote_path='shard_path2'):
+
+def send_file(keep_files=5, remote_path='shard_path2',rng=None,sample_rng=None,label=None):
     files = glob.glob('shard_path/*.tar')
     files.sort(key=lambda x: os.path.getctime(x), )
 
@@ -50,11 +55,13 @@ def send_file(keep_files=5, remote_path='shard_path2'):
         else:
             files = files[:-keep_files]
         # print(files)
+        dst = remote_path
+        if 'gs' not in remote_path:
+            dst = os.getcwd() + '/' + dst
+            os.makedirs(dst, exist_ok=True)
+
         for file in files:
             base_name = os.path.basename(file)
-            dst = remote_path
-            if 'gs' not in remote_path:
-                os.makedirs(dst, exist_ok=True)
 
             if jax.process_index() == 0:
                 print(base_name, files)
@@ -70,6 +77,29 @@ def send_file(keep_files=5, remote_path='shard_path2'):
                 os.remove(src_file)
 
             threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
+
+        if rng is not None:
+            # with wds.gopen(f'{dst}/resume.json', "wb") as fp:
+            #     fp.write(
+            #         flax.serialization.msgpack_serialize({
+            #             'rng': rng,
+            #             'sample_rng': sample_rng,
+            #             'label': label
+            #         })
+            #     )
+
+            ckpt ={
+                        'rng': rng,
+                        'sample_rng': sample_rng,
+                        'label': label
+                    }
+            # orbax_checkpointer = ocp.PyTreeCheckpointer()
+            save_args = orbax_utils.save_args_from_target(ckpt)
+            checkpointer.save(f'{dst}/resume.json', ckpt, save_args=save_args, force=True)
+
+
+
+
 
 
 def test_sharding(rng,sample_rng, params, vae_params, class_label: int, diffusion_sample, vae, shape, cfg_scale: float = 1.5):
@@ -162,10 +192,35 @@ def collect_process_data(data):
 
 
 def test_convert(args):
+
+
+
     print(f'{threading.active_count()=}')
     # jax.distributed.initialize()
     rng = jax.random.PRNGKey(args.seed)
     sample_rng = jax.random.PRNGKey(args.sample_seed)
+
+
+
+    # dst=args.output_dir+'/'+'resume.json'
+    # if 'gs' not in dst:
+    #     dst = os.getcwd() + '/' + dst
+    # data=checkpointer.restore(dst)
+    # print(data)
+    #
+    #
+    # while True:
+    #     1
+    # if args.resume:
+    #     with wds.gopen('shard_path2/resume.json') as fp:
+    #         new_params = flax.serialization.msgpack_restore(fp.read())
+    #         rng=
+    #         print(type(new_params['rng']))
+    # else:
+
+
+
+
 
     device_count = jax.device_count()
     mesh_shape = (device_count,)
@@ -305,7 +360,7 @@ def test_convert(args):
                              args=(
                                  local_images, local_class_labels, sink, label,
                                  True if i == iter_per_shard - 1 else False)).start()
-        send_file(remote_path=args.output_dir)
+        send_file(remote_path=args.output_dir,rng=rng,sample_rng=sample_rng,label=label)
 
     while threading.active_count() > 2:
         print(f'{threading.active_count()=}')
@@ -341,13 +396,13 @@ def save_image_torch(img, i):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    # parser.add_argument("--output-dir", default="shard_path2")
+    parser.add_argument("--output-dir", default="shard_path2")
     # parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.75")
-    parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.5-eta0.2")
+    # parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.5-eta0.2")
     parser.add_argument("--seed", type=int, default=4)
     parser.add_argument("--sample-seed", type=int, default=2036)
     parser.add_argument("--cfg", type=float, default=1.5)
-    parser.add_argument("--data-per-shard", type=int, default=2048)
+    parser.add_argument("--data-per-shard", type=int, default=2) #2048
     parser.add_argument("--per-process-shards", type=int, default=200)
-    parser.add_argument("--per-device-batch", type=int, default=128)
+    parser.add_argument("--per-device-batch", type=int, default=1) #128
     test_convert(parser.parse_args())
