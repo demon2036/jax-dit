@@ -272,9 +272,14 @@ def test_convert(args):
     dst=args.output_dir+'/'+'resume.json'
     if 'gs' not in dst:
         dst = os.getcwd() + '/' + dst
-    ckpt=checkpointer.restore(dst)
-    rng=jnp.array(np.asarray(ckpt['rng']))
-    # sample_rng=ckpt['sample_rng']
+    ckpt = {
+        'rng': rng,
+        'sample_rng': sample_rng,
+        'label': 1
+    }
+    ckpt=checkpointer.restore(dst,item=ckpt)
+    rng=ckpt['rng']
+    sample_rng=ckpt['sample_rng']
 
 
 
