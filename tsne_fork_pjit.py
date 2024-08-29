@@ -454,7 +454,7 @@ if __name__ == "__main__":
     parser.add_argument("--sample-seed", type=int, default=2036)
     parser.add_argument("--cfg", type=float, default=1.25)
     parser.add_argument("--data-per-shard", type=int, default=2048)  #2048
-    parser.add_argument("--per-process-shards", type=int, default=500)
+    parser.add_argument("--per-process-shards", type=int, default=250)
     parser.add_argument("--per-device-batch", type=int, default=128)  #128
     parser.add_argument("--resume",  action="store_true", default=False)
     test_convert(parser.parse_args())
