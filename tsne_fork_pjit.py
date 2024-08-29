@@ -416,7 +416,7 @@ def test_convert(args):
         time.sleep(1)
     sink.close()
     print('now send file')
-    send_file(5, args.output_dir, rng, sample_rng, label, checkpointer)
+    send_file(0, args.output_dir, rng, sample_rng, label, checkpointer)
     while threading.active_count() > 2:
         print(f'{threading.active_count()=}')
         time.sleep(1)
