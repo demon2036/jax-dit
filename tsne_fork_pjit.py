@@ -217,7 +217,7 @@ def test_convert(args):
         if 'gs' not in dst:
             dst = os.getcwd() + '/' + dst
         with wds.gopen('shard_path2/resume.json') as fp:
-        new_params = flax.serialization.msgpack_restore(fp.read())
+            new_params = flax.serialization.msgpack_restore(fp.read())
 
     new_params=broadcast_one_to_all(new_params)
 
