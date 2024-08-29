@@ -271,9 +271,11 @@ def test_convert(args):
     if 'gs' not in dst:
         dst = os.getcwd() + '/' + dst
     ckpt=checkpointer.restore(dst)
-    print(ckpt)
-    while True:
-        pass
+    rng=ckpt['rng']
+    sample_rng=ckpt['sample_rng']
+    # print(ckpt)
+    # while True:
+    #     pass
 
 
     # print(new_params)
