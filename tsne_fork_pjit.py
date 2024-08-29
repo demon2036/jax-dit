@@ -267,13 +267,13 @@ def test_convert(args):
 
     # if jax.process_index()==0:
 
-    # dst=args.output_dir+'/'+'resume.json'
-    # if 'gs' not in dst:
-    #     dst = os.getcwd() + '/' + dst
-    # with wds.gopen(dst) as fp:
-    #     new_params = flax.serialization.msgpack_restore(fp.read())
-    #     new_params = broadcast_one_to_all(new_params)
-    # sync_global_devices('test')
+    dst=args.output_dir+'/'+'resume.json'
+    if 'gs' not in dst:
+        dst = os.getcwd() + '/' + dst
+    ckpt=checkpointer.restore(dst)
+    print(ckpt)
+    while True:
+        pass
 
 
     # print(new_params)
