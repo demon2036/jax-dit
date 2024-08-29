@@ -255,10 +255,7 @@ def test_convert(args):
     sample_rng = jax.random.PRNGKey(args.sample_seed)
     rng = jax.random.split(rng, num=jax.device_count())
     sample_rng = jax.random.split(sample_rng, num=jax.device_count())
-    print(rng.devices())
 
-    while True:
-        pass
 
     dst = args.output_dir + '/' + 'resume.json'
     if 'gs' not in dst:
