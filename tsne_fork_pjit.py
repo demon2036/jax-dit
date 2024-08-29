@@ -39,7 +39,7 @@ import orbax.checkpoint as ocp
 lock = threading.Lock()
 
 jax.distributed.initialize()
-checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
+
 
 
 
@@ -84,6 +84,8 @@ def send_file(keep_files=2, remote_path='shard_path2',rng=None,sample_rng=None,l
                 # threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
 
             if rng is not None:
+                # checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
+                checkpointer = ocp.PyTreeCheckpointer()
                 rng=process_allgather(rng)
                 sample_rng=process_allgather(sample_rng)
                 print(rng.shape,sample_rng.shape)
