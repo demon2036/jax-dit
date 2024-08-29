@@ -284,6 +284,9 @@ def test_convert(args):
     def mesh_sharding(pspec: PartitionSpec) -> NamedSharding:
         return NamedSharding(mesh, pspec)
 
+    x_sharding = mesh_sharding(PartitionSpec('data'))
+    rng=jax.device_put(rng,x_sharding)
+
     class_label = 2
 
     b, h, w, c = shape = args.per_device_batch, 32, 32, 4
@@ -292,7 +295,7 @@ def test_convert(args):
 
     x = jnp.ones(shape)
 
-    x_sharding = mesh_sharding(PartitionSpec('data'))
+
 
     # for device in x_sharding.addressable_devices:
     #     if jax.process_index() == 0:
