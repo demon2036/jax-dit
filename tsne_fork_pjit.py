@@ -16,6 +16,7 @@ from flax.jax_utils import replicate
 from flax.training import orbax_utils
 from flax.training.common_utils import shard_prng_key
 from jax.experimental import mesh_utils
+from jax.experimental.host_callback import barrier_wait
 from jax.experimental.shard_map import shard_map
 from jax.sharding import Mesh, NamedSharding, PartitionSpec
 
@@ -216,9 +217,9 @@ def test_convert(args):
         dst=args.output_dir+'/'+'resume.json'
         if 'gs' not in dst:
             dst = os.getcwd() + '/' + dst
-        with wds.gopen('shard_path2/resume.json') as fp:
+        with wds.gopen(dst) as fp:
             new_params = flax.serialization.msgpack_restore(fp.read())
-
+    barrier_wait()
     new_params=broadcast_one_to_all(new_params)
 
     print(new_params)
