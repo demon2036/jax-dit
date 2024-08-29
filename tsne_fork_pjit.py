@@ -366,7 +366,7 @@ def test_convert(args):
                                  local_images, local_class_labels, sink, label,
                                  True if i == iter_per_shard - 1 else False)).start()
 
-        # threading.Thread(target=thread_write,args=(5,args.output_dir,rng,sample_rng,label)).start()
+        threading.Thread(target=send_file,args=(5,args.output_dir,rng,sample_rng,label)).start()
 
         # send_file(remote_path=args.output_dir,rng=rng,sample_rng=sample_rng,label=label)
 
