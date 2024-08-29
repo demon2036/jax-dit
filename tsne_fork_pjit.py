@@ -465,5 +465,5 @@ if __name__ == "__main__":
     parser.add_argument("--data-per-shard", type=int, default=64)  #2048
     parser.add_argument("--per-process-shards", type=int, default=200)
     parser.add_argument("--per-device-batch", type=int, default=8)  #128
-    parser.add_argument("--resume", type=bool, action="store_true", default=False)
+    parser.add_argument("--resume",  action="store_true", default=False)
     test_convert(parser.parse_args())
