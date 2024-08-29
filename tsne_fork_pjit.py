@@ -1,42 +1,33 @@
 import argparse
 import functools
 import glob
+import os
 import threading
 import time
 from pathlib import Path
 
 import PIL.Image
 import einops
+import jax
+import jax.numpy as jnp
+import matplotlib.pyplot as plt
 import numpy as np
+import orbax.checkpoint as ocp
 import torch
 import tqdm
+import webdataset as wds
 from diffusers import FlaxAutoencoderKL
-from flax.core import FrozenDict
-from flax.jax_utils import replicate
 from flax.training import orbax_utils
-from flax.training.common_utils import shard_prng_key
 from jax.experimental import mesh_utils
-from jax.experimental.host_callback import barrier_wait
 from jax.experimental.shard_map import shard_map
 from jax.sharding import Mesh, NamedSharding, PartitionSpec
+from torchvision.utils import save_image
 
 from convert_torch_to_jax import convert_torch_to_jax
 from diffusion import create_diffusion_sample
+from models import DiT_XL_2 as DiT_S_2_jax
 from ref.download import download_model
 from ref.model_dit_torch import DiT_XL_2 as DiT_S_2_torch
-from models import DiT_XL_2 as DiT_S_2_jax
-import jax
-import jax.numpy as jnp
-import flax
-import flax.linen as nn
-import os
-import matplotlib.pyplot as plt
-from prefetch import convert_to_global_array
-from torchvision.utils import save_image
-import webdataset as wds
-from jax.experimental.multihost_utils import global_array_to_host_local_array, process_allgather
-
-import orbax.checkpoint as ocp
 
 lock = threading.Lock()
 
