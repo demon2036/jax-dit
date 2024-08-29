@@ -406,7 +406,7 @@ def test_convert(args):
                              args=(
                                  local_images, local_class_labels, sink, label,
                                  True if i == iter_per_shard - 1 else False)).start()
-        send_file(0, args.output_dir, rng, sample_rng, label, checkpointer)
+        send_file(5, args.output_dir, rng, sample_rng, label, checkpointer)
         # threading.Thread(target=send_file,args=(0,args.output_dir,rng,sample_rng,label,checkpointer)).start()
 
         # send_file(remote_path=args.output_dir,rng=rng,sample_rng=sample_rng,label=label)
@@ -416,7 +416,7 @@ def test_convert(args):
         time.sleep(1)
     sink.close()
     print('now send file')
-    send_file(0, remote_path=args.output_dir)
+    send_file(5, args.output_dir, rng, sample_rng, label, checkpointer)
     while threading.active_count() > 2:
         print(f'{threading.active_count()=}')
         time.sleep(1)
