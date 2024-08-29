@@ -413,7 +413,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=4)
     parser.add_argument("--sample-seed", type=int, default=2036)
     parser.add_argument("--cfg", type=float, default=1.25)
-    parser.add_argument("--data-per-shard", type=int, default=1024) #2048
+    parser.add_argument("--data-per-shard", type=int, default=64) #2048
     parser.add_argument("--per-process-shards", type=int, default=200)
-    parser.add_argument("--per-device-batch", type=int, default=128) #128
+    parser.add_argument("--per-device-batch", type=int, default=8) #128
     test_convert(parser.parse_args())
