@@ -33,7 +33,7 @@ import matplotlib.pyplot as plt
 from prefetch import convert_to_global_array
 from torchvision.utils import save_image
 import webdataset as wds
-from jax.experimental.multihost_utils import global_array_to_host_local_array
+from jax.experimental.multihost_utils import global_array_to_host_local_array,process_allgather
 import orbax.checkpoint as ocp
 
 
@@ -82,6 +82,9 @@ def send_file(keep_files=5, remote_path='shard_path2',rng=None,sample_rng=None,l
             # threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
 
         if rng is not None:
+            rng=process_allgather(rng)
+            sample_rng=process_allgather(sample_rng)
+            print(rng.shape,sample_rng.shape)
             # with wds.gopen(f'{dst}/resume.json', "wb") as fp:
             #     fp.write(
             #         flax.serialization.msgpack_serialize({
@@ -279,10 +282,7 @@ def test_convert(args):
                   PartitionSpec(None),
                   PartitionSpec(None), PartitionSpec()
                   ),
-        out_specs=(
-            PartitionSpec(None),PartitionSpec(None),
-            PartitionSpec('data'),PartitionSpec('data'),
-        )
+        out_specs=PartitionSpec('data')
 
     )
 
