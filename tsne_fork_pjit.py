@@ -37,8 +37,8 @@ from jax.experimental.multihost_utils import global_array_to_host_local_array
 import orbax.checkpoint as ocp
 
 
-# jax.distributed.initialize()
-# checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
+jax.distributed.initialize()
+checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
 
 
 
