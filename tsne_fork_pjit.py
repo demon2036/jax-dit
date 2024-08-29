@@ -263,6 +263,8 @@ def test_convert(args):
     # jax.distributed.initialize()
     rng = jax.random.PRNGKey(args.seed)
     sample_rng = jax.random.PRNGKey(args.sample_seed)
+    rng = jax.random.split(rng, num=jax.device_count())
+    sample_rng = jax.random.split(sample_rng, num=jax.device_count())
 
 
     # if jax.process_index()==0:
@@ -313,8 +315,7 @@ def test_convert(args):
     b, h, w, c = shape = args.per_device_batch, 32, 32, 4
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
-    rng = jax.random.split(rng, num=jax.device_count())
-    sample_rng=jax.random.split(sample_rng, num=jax.device_count())
+
 
     x = jnp.ones(shape)
 
