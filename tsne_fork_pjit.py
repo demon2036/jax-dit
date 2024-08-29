@@ -247,7 +247,17 @@ def collect_process_data(data):
 
 
 def test_convert(args):
-    checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
+    device_count = jax.device_count()
+    mesh_shape = (device_count,)
+    device_mesh = mesh_utils.create_device_mesh(mesh_shape,)
+    mesh = Mesh(device_mesh, axis_names=('data',))
+    def mesh_sharding(pspec: PartitionSpec) -> NamedSharding:
+        return NamedSharding(mesh, pspec)
+
+    x_sharding = mesh_sharding(PartitionSpec('data'))
+
+
+
 
     print(f'{threading.active_count()=}')
     # jax.distributed.initialize()
@@ -255,8 +265,10 @@ def test_convert(args):
     sample_rng = jax.random.PRNGKey(args.sample_seed)
     rng = jax.random.split(rng, num=jax.device_count())
     sample_rng = jax.random.split(sample_rng, num=jax.device_count())
+    rng = jax.device_put(rng, x_sharding)
+    sample_rng = jax.device_put(sample_rng, x_sharding)
 
-
+    checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
     dst = args.output_dir + '/' + 'resume.json'
     if 'gs' not in dst:
         dst = os.getcwd() + '/' + dst
@@ -269,20 +281,8 @@ def test_convert(args):
     rng = ckpt['rng']
     sample_rng = ckpt['sample_rng']
     #
-    device_count = jax.device_count()
-    mesh_shape = (device_count,)
-
-    device_mesh = mesh_utils.create_device_mesh(mesh_shape,)
-    mesh = Mesh(device_mesh, axis_names=('data',))
 
 
-
-    def mesh_sharding(pspec: PartitionSpec) -> NamedSharding:
-        return NamedSharding(mesh, pspec)
-
-    x_sharding = mesh_sharding(PartitionSpec('data'))
-    rng=jax.device_put(rng,x_sharding)
-    sample_rng=jax.device_put(sample_rng,x_sharding)
 
     class_label = 2
 
