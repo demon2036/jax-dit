@@ -205,11 +205,11 @@ def test_convert(args):
 
 
 
-    dst=args.output_dir+'/'+'resume.json'
-    if 'gs' not in dst:
-        dst = os.getcwd() + '/' + dst
-    data=checkpointer.restore(dst)
-    print(data)
+    # dst=args.output_dir+'/'+'resume.json'
+    # if 'gs' not in dst:
+    #     dst = os.getcwd() + '/' + dst
+    # data=checkpointer.restore(dst)
+    # print(data)
 
 
     # while True:
