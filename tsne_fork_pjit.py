@@ -265,8 +265,7 @@ def test_convert(args):
     sample_rng = jax.random.PRNGKey(args.sample_seed)
     rng = jax.random.split(rng, num=jax.device_count())
     sample_rng = jax.random.split(sample_rng, num=jax.device_count())
-    rng = jax.device_put(rng, x_sharding)
-    sample_rng = jax.device_put(sample_rng, x_sharding)
+
 
     checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
     dst = args.output_dir + '/' + 'resume.json'
@@ -280,7 +279,8 @@ def test_convert(args):
     ckpt = checkpointer.restore(dst, item=ckpt)
     rng = ckpt['rng']
     sample_rng = ckpt['sample_rng']
-    #
+    rng = jax.device_put(rng, x_sharding)
+    sample_rng = jax.device_put(sample_rng, x_sharding)
 
 
 
