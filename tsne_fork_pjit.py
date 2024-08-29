@@ -78,7 +78,8 @@ def send_file(keep_files=5, remote_path='shard_path2',rng=None,sample_rng=None,l
 
                 os.remove(src_file)
 
-            threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
+            send_data_thread(file, f'{dst}/{base_name}')
+            # threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
 
         if rng is not None:
             # with wds.gopen(f'{dst}/resume.json', "wb") as fp:
@@ -204,13 +205,13 @@ def test_convert(args):
 
 
 
-    # dst=args.output_dir+'/'+'resume.json'
-    # if 'gs' not in dst:
-    #     dst = os.getcwd() + '/' + dst
-    # data=checkpointer.restore(dst)
-    # print(data)
-    #
-    #
+    dst=args.output_dir+'/'+'resume.json'
+    if 'gs' not in dst:
+        dst = os.getcwd() + '/' + dst
+    data=checkpointer.restore(dst)
+    print(data)
+
+
     # while True:
     #     1
     # if args.resume:
@@ -362,7 +363,10 @@ def test_convert(args):
                              args=(
                                  local_images, local_class_labels, sink, label,
                                  True if i == iter_per_shard - 1 else False)).start()
-        send_file(remote_path=args.output_dir,rng=rng,sample_rng=sample_rng,label=label)
+
+        threading.Thread(target=thread_write,args=(5,args.output_dir,rng,sample_rng,label)).start()
+
+        # send_file(remote_path=args.output_dir,rng=rng,sample_rng=sample_rng,label=label)
 
     while threading.active_count() > 2:
         print(f'{threading.active_count()=}')
@@ -400,10 +404,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # parser.add_argument("--output-dir", default="shard_path2")
     # parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.75")
-    parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.5-eta0.2")
+    parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.25-eta0.2")
     parser.add_argument("--seed", type=int, default=4)
     parser.add_argument("--sample-seed", type=int, default=2036)
-    parser.add_argument("--cfg", type=float, default=1.5)
+    parser.add_argument("--cfg", type=float, default=1.25)
     parser.add_argument("--data-per-shard", type=int, default=2048) #2048
     parser.add_argument("--per-process-shards", type=int, default=200)
     parser.add_argument("--per-device-batch", type=int, default=128) #128
