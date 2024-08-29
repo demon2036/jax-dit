@@ -34,14 +34,11 @@ import matplotlib.pyplot as plt
 from prefetch import convert_to_global_array
 from torchvision.utils import save_image
 import webdataset as wds
-from jax.experimental.multihost_utils import global_array_to_host_local_array,process_allgather,broadcast_one_to_all,sync_global_devices
+from jax.experimental.multihost_utils import global_array_to_host_local_array, process_allgather
+
 import orbax.checkpoint as ocp
 
 lock = threading.Lock()
-
-jax.distributed.initialize()
-
-
 
 
 # def send_file(keep_files=2, remote_path='shard_path2',rng=None,sample_rng=None,label=None):
@@ -110,7 +107,7 @@ jax.distributed.initialize()
 #                 # checkpointer.save(f'{dst}/resume.json', ckpt, save_args=save_args, force=True)
 
 
-def send_file(keep_files=2, remote_path='shard_path2',rng=None,sample_rng=None,label=None,checkpointer=None):
+def send_file(keep_files=2, remote_path='shard_path2', rng=None, sample_rng=None, label=None, checkpointer=None):
     with lock:
         files = glob.glob('shard_path/*.tar')
         files.sort(key=lambda x: os.path.getctime(x), )
@@ -151,28 +148,24 @@ def send_file(keep_files=2, remote_path='shard_path2',rng=None,sample_rng=None,l
                 threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
 
             if rng is not None:
-
-
-
-                ckpt ={
-                            'rng': rng,
-                            'sample_rng': sample_rng,
-                            'label': label-keep_files
-                        }
+                ckpt = {
+                    'rng': rng,
+                    'sample_rng': sample_rng,
+                    'label': label - keep_files
+                }
                 # orbax_checkpointer = ocp.PyTreeCheckpointer()
                 save_args = orbax_utils.save_args_from_target(ckpt)
                 checkpointer.save(f'{dst}/resume.json', ckpt, save_args=save_args, force=True)
 
 
-
-
-def test_sharding(rng,sample_rng, params, vae_params, class_label: int, diffusion_sample, vae, shape, cfg_scale: float = 1.5):
+def test_sharding(rng, sample_rng, params, vae_params, class_label: int, diffusion_sample, vae, shape,
+                  cfg_scale: float = 1.5):
     new_rng, local_rng, class_rng = jax.random.split(rng[0], 3)
-    new_sample_rng,sample_rng_do= jax.random.split(sample_rng[0], 2)
+    new_sample_rng, sample_rng_do = jax.random.split(sample_rng[0], 2)
     # class_labels = jnp.ones((shape[0],), dtype=jnp.int32) * class_label
 
     class_labels = jax.random.randint(class_rng, (shape[0],), 0, 999)
-    print(rng,sample_rng)
+    print(rng, sample_rng)
 
     z = jax.random.normal(key=local_rng, shape=shape)
     z = jnp.concat([z, z], axis=0)
@@ -180,8 +173,6 @@ def test_sharding(rng,sample_rng, params, vae_params, class_label: int, diffusio
     y_null = jnp.array([1000] * shape[0])
     y = jnp.concat([y, y_null], axis=0)
     model_kwargs = dict(y=y, cfg_scale=cfg_scale)
-
-
 
     latent = diffusion_sample.ddim_sample_loop(params, z.shape, z, clip_denoised=False, model_kwargs=model_kwargs,
                                                key=sample_rng_do, eta=0.2)
@@ -198,9 +189,9 @@ def test_sharding(rng,sample_rng, params, vae_params, class_label: int, diffusio
     image = einops.rearrange(image, 'b c h w->b h w c')
 
     rng = rng.at[0].set(new_rng)
-    sample_rng=sample_rng.at[0].set(new_sample_rng)
+    sample_rng = sample_rng.at[0].set(new_sample_rng)
 
-    return rng,sample_rng, image, class_labels
+    return rng, sample_rng, image, class_labels
 
 
 def create_state():
@@ -258,7 +249,6 @@ def collect_process_data(data):
 def test_convert(args):
     checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
 
-
     print(f'{threading.active_count()=}')
     # jax.distributed.initialize()
     rng = jax.random.PRNGKey(args.seed)
@@ -266,10 +256,9 @@ def test_convert(args):
     rng = jax.random.split(rng, num=jax.device_count())
     sample_rng = jax.random.split(sample_rng, num=jax.device_count())
 
-
     # if jax.process_index()==0:
 
-    dst=args.output_dir+'/'+'resume.json'
+    dst = args.output_dir + '/' + 'resume.json'
     if 'gs' not in dst:
         dst = os.getcwd() + '/' + dst
     ckpt = {
@@ -277,19 +266,18 @@ def test_convert(args):
         'sample_rng': sample_rng,
         'label': 1
     }
-    ckpt=checkpointer.restore(dst,item=ckpt)
-    rng=ckpt['rng']
-    sample_rng=ckpt['sample_rng']
-
-
-
-
-
+    ckpt = checkpointer.restore(dst, item=ckpt)
+    rng = ckpt['rng']
+    sample_rng = ckpt['sample_rng']
+    #
     device_count = jax.device_count()
     mesh_shape = (device_count,)
 
-    device_mesh = mesh_utils.create_device_mesh(mesh_shape)
+    device_mesh = mesh_utils.create_device_mesh(mesh_shape,devices=list(rng.devices()))
     mesh = Mesh(device_mesh, axis_names=('data',))
+
+    print(device_mesh, mesh_shape)
+
 
     def mesh_sharding(pspec: PartitionSpec) -> NamedSharding:
         return NamedSharding(mesh, pspec)
@@ -299,7 +287,6 @@ def test_convert(args):
     b, h, w, c = shape = args.per_device_batch, 32, 32, 4
 
     # rng = jax.random.split(rng, num=jax.local_device_count())
-
 
     x = jnp.ones(shape)
 
@@ -332,7 +319,7 @@ def test_convert(args):
 
     test_sharding_jit = shard_map(
         functools.partial(test_sharding, shape=shape, diffusion_sample=diffusion_sample,
-                          vae=vae,cfg_scale=args.cfg),
+                          vae=vae, cfg_scale=args.cfg),
         mesh=mesh,
         in_specs=(PartitionSpec('data'), PartitionSpec('data'),
                   PartitionSpec(None),
@@ -355,7 +342,7 @@ def test_convert(args):
     def thread_write(images, class_labels, sink, label, send_file=False):
         images = images * 255
         # images = np.asarray(images, dtype=np.uint8)
-        images=np.array(images).astype(np.uint8)
+        images = np.array(images).astype(np.uint8)
         print(images.shape)
         with lock:
             nonlocal counter
@@ -393,7 +380,8 @@ def test_convert(args):
     for label in range(0, args.per_process_shards):
 
         for i in tqdm.tqdm(range(iter_per_shard), disable=not jax.process_index() == 0):
-            rng,sample_rng, images, class_labels = test_sharding_jit(rng,sample_rng, converted_jax_params, vae_params, label)
+            rng, sample_rng, images, class_labels = test_sharding_jit(rng, sample_rng, converted_jax_params, vae_params,
+                                                                      label)
             """
             batch_size, *_ = images.shape
             per_process_batch = batch_size // jax.process_count()
@@ -424,7 +412,7 @@ def test_convert(args):
                              args=(
                                  local_images, local_class_labels, sink, label,
                                  True if i == iter_per_shard - 1 else False)).start()
-        send_file(0,args.output_dir,rng,sample_rng,label,checkpointer)
+        send_file(0, args.output_dir, rng, sample_rng, label, checkpointer)
         # threading.Thread(target=send_file,args=(0,args.output_dir,rng,sample_rng,label,checkpointer)).start()
 
         # send_file(remote_path=args.output_dir,rng=rng,sample_rng=sample_rng,label=label)
@@ -462,6 +450,8 @@ def save_image_torch(img, i):
 
 
 if __name__ == "__main__":
+    # jax.distributed.initialize()
+
     parser = argparse.ArgumentParser()
     # parser.add_argument("--output-dir", default="shard_path2")
     # parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.75")
@@ -469,7 +459,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=4)
     parser.add_argument("--sample-seed", type=int, default=2036)
     parser.add_argument("--cfg", type=float, default=1.25)
-    parser.add_argument("--data-per-shard", type=int, default=64) #2048
+    parser.add_argument("--data-per-shard", type=int, default=64)  #2048
     parser.add_argument("--per-process-shards", type=int, default=200)
-    parser.add_argument("--per-device-batch", type=int, default=8) #128
+    parser.add_argument("--per-device-batch", type=int, default=8)  #128
     test_convert(parser.parse_args())
