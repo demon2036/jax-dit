@@ -396,9 +396,9 @@ def save_image_torch(img, i):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output-dir", default="shard_path2")
+    # parser.add_argument("--output-dir", default="shard_path2")
     # parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.75")
-    # parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.5-eta0.2")
+    parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.5-eta0.2")
     parser.add_argument("--seed", type=int, default=4)
     parser.add_argument("--sample-seed", type=int, default=2036)
     parser.add_argument("--cfg", type=float, default=1.5)
