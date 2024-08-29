@@ -256,7 +256,6 @@ def test_convert(args):
     rng = jax.random.split(rng, num=jax.device_count())
     sample_rng = jax.random.split(sample_rng, num=jax.device_count())
 
-    # if jax.process_index()==0:
 
     dst = args.output_dir + '/' + 'resume.json'
     if 'gs' not in dst:
@@ -450,7 +449,7 @@ def save_image_torch(img, i):
 
 
 if __name__ == "__main__":
-    # jax.distributed.initialize()
+    jax.distributed.initialize()
 
     parser = argparse.ArgumentParser()
     # parser.add_argument("--output-dir", default="shard_path2")
