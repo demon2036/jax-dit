@@ -34,7 +34,7 @@ import matplotlib.pyplot as plt
 from prefetch import convert_to_global_array
 from torchvision.utils import save_image
 import webdataset as wds
-from jax.experimental.multihost_utils import global_array_to_host_local_array,process_allgather,broadcast_one_to_all
+from jax.experimental.multihost_utils import global_array_to_host_local_array,process_allgather,broadcast_one_to_all,sync_global_devices
 import orbax.checkpoint as ocp
 
 lock = threading.Lock()
@@ -86,6 +86,7 @@ def send_file(keep_files=2, remote_path='shard_path2',rng=None,sample_rng=None,l
 
             if rng is not None:
                 checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
+                checkpointer.restore()
                 # checkpointer = ocp.PyTreeCheckpointer()
                 rng=process_allgather(rng)
                 sample_rng=process_allgather(sample_rng)
@@ -212,15 +213,15 @@ def test_convert(args):
     sample_rng = jax.random.PRNGKey(args.sample_seed)
 
 
-    if jax.process_index()==0:
+    # if jax.process_index()==0:
 
-        dst=args.output_dir+'/'+'resume.json'
-        if 'gs' not in dst:
-            dst = os.getcwd() + '/' + dst
-        with wds.gopen(dst) as fp:
-            new_params = flax.serialization.msgpack_restore(fp.read())
-            new_params = broadcast_one_to_all(new_params)
-    barrier_wait()
+    dst=args.output_dir+'/'+'resume.json'
+    if 'gs' not in dst:
+        dst = os.getcwd() + '/' + dst
+    with wds.gopen(dst) as fp:
+        new_params = flax.serialization.msgpack_restore(fp.read())
+        new_params = broadcast_one_to_all(new_params)
+    # sync_global_devices('test')
 
 
     print(new_params)
