@@ -297,6 +297,7 @@ def test_convert(args):
         images = images * 255
         # images = np.asarray(images, dtype=np.uint8)
         images=np.array(images).astype(np.uint8)
+        print(images.shape)
         with lock:
             nonlocal counter
 
