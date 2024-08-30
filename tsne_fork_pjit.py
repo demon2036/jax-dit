@@ -269,12 +269,12 @@ def test_convert(args):
         rng = ckpt['rng']
         sample_rng = ckpt['sample_rng']
         print(ckpt)
-        while True:
-            pass
+
     rng = jax.device_put(rng, x_sharding)
     sample_rng = jax.device_put(sample_rng, x_sharding)
 
-
+    while True:
+        pass
 
     class_label = 2
 
