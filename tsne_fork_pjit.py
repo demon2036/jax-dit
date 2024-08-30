@@ -247,9 +247,6 @@ def test_convert(args):
 
     x_sharding = mesh_sharding(PartitionSpec('data'))
 
-
-
-
     print(f'{threading.active_count()=}')
     # jax.distributed.initialize()
     rng = jax.random.PRNGKey(args.seed)
@@ -271,6 +268,9 @@ def test_convert(args):
         ckpt = checkpointer.restore(dst, item=ckpt)
         rng = ckpt['rng']
         sample_rng = ckpt['sample_rng']
+        print(ckpt)
+        while True:
+            pass
     rng = jax.device_put(rng, x_sharding)
     sample_rng = jax.device_put(sample_rng, x_sharding)
 
