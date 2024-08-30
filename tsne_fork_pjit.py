@@ -256,6 +256,7 @@ def test_convert(args):
 
 
     checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
+    start_label=0
     if args.resume:
         dst = args.output_dir + '/' + 'resume.json'
         if 'gs' not in dst:
@@ -268,13 +269,12 @@ def test_convert(args):
         ckpt = checkpointer.restore(dst, item=ckpt)
         rng = ckpt['rng']
         sample_rng = ckpt['sample_rng']
-        print(ckpt)
+        start_label=ckpt['label']
+        # print(ckpt)
 
     rng = jax.device_put(rng, x_sharding)
     sample_rng = jax.device_put(sample_rng, x_sharding)
 
-    while True:
-        pass
 
     class_label = 2
 
@@ -370,8 +370,9 @@ def test_convert(args):
         verbose=jax.process_index() == 0
         # maxsize=shard_size,
     )
-
-    for label in range(0, args.per_process_shards):
+    # for label in tqdm.trange()
+    for label in range(start_label, args.per_process_shards):
+        print(label)
 
         for i in tqdm.tqdm(range(iter_per_shard), disable=not jax.process_index() == 0):
             rng, sample_rng, images, class_labels = test_sharding_jit(rng, sample_rng, converted_jax_params, vae_params,
