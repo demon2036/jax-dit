@@ -32,72 +32,6 @@ from ref.model_dit_torch import DiT_XL_2 as DiT_S_2_torch
 lock = threading.Lock()
 
 
-# def send_file(keep_files=2, remote_path='shard_path2',rng=None,sample_rng=None,label=None):
-#     with lock:
-#         files = glob.glob('shard_path/*.tar')
-#         files.sort(key=lambda x: os.path.getctime(x), )
-#
-#         if len(files) == 0:
-#             raise NotImplemented()
-#         elif len(files) <= keep_files:
-#             pass
-#         else:
-#
-#             if keep_files == 0:
-#                 files = files
-#             else:
-#                 files = files[:-keep_files]
-#             # print(files)
-#             dst = remote_path
-#             if 'gs' not in remote_path:
-#                 dst = os.getcwd() + '/' + dst
-#                 os.makedirs(dst, exist_ok=True)
-#
-#             for file in files:
-#                 base_name = os.path.basename(file)
-#
-#                 if jax.process_index() == 0:
-#                     print(base_name, files)
-#
-#                 def send_data_thread(src_file, dst_file):
-#                     with wds.gopen(src_file, "rb") as fp_local:
-#                         data_to_write = fp_local.read()
-#
-#                     with wds.gopen(f'{dst_file}', "wb") as fp:
-#                         fp.write(data_to_write)
-#                         # fp.flush()
-#
-#                     os.remove(src_file)
-#
-#                 send_data_thread(file, f'{dst}/{base_name}')
-#                 # threading.Thread(target=send_data_thread, args=(file, f'{dst}/{base_name}')).start()
-#
-#             if rng is not None:
-#                 checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
-#                 checkpointer.restore()
-#                 # checkpointer = ocp.PyTreeCheckpointer()
-#                 rng=process_allgather(rng)
-#                 sample_rng=process_allgather(sample_rng)
-#                 print(rng.shape,sample_rng.shape)
-#                 with wds.gopen(f'{dst}/resume.json', "wb") as fp:
-#                     fp.write(
-#                         flax.serialization.msgpack_serialize({
-#                             'rng': rng,
-#                             'sample_rng': sample_rng,
-#                             'label': label
-#                         })
-#                     )
-#
-#                 # ckpt ={
-#                 #             'rng': rng,
-#                 #             'sample_rng': sample_rng,
-#                 #             'label': label
-#                 #         }
-#                 # # orbax_checkpointer = ocp.PyTreeCheckpointer()
-#                 # save_args = orbax_utils.save_args_from_target(ckpt)
-#                 # checkpointer.save(f'{dst}/resume.json', ckpt, save_args=save_args, force=True)
-
-
 def send_file(keep_files=2, remote_path='shard_path2', rng=None, sample_rng=None, label=None, checkpointer=None):
     with lock:
         files = glob.glob('shard_path/*.tar')
@@ -169,6 +103,38 @@ def test_sharding(rng, sample_rng, params, vae_params, class_label: int, diffusi
                                                key=sample_rng_do, eta=0.2)
 
     latent, _ = jnp.split(latent, 2, axis=0)
+
+    latent = latent / 0.18215
+    image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
+    image = image / 2 + 0.5
+
+    image = jnp.clip(image, 0, 1)
+    # image=jnp.array(image,dtype=jnp.uint8)
+
+    image = einops.rearrange(image, 'b c h w->b h w c')
+
+    rng = rng.at[0].set(new_rng)
+    sample_rng = sample_rng.at[0].set(new_sample_rng)
+
+    return rng, sample_rng, image, class_labels
+
+
+
+
+def condition_sample(rng, sample_rng, params, vae_params, class_label: int, diffusion_sample, vae, shape,
+                  cfg_scale: float = 1.5):
+    new_rng, local_rng, class_rng = jax.random.split(rng[0], 3)
+    new_sample_rng, sample_rng_do = jax.random.split(sample_rng[0], 2)
+    # class_labels = jnp.ones((shape[0],), dtype=jnp.int32) * class_label
+
+    class_labels = jax.random.randint(class_rng, (shape[0],), 0, 999)
+    print(rng, sample_rng)
+
+    z = jax.random.normal(key=local_rng, shape=shape)
+    y = jnp.array(class_labels)
+    model_kwargs = dict(y=y,)
+    latent = diffusion_sample.ddim_sample_loop(params, z.shape, z, clip_denoised=False, model_kwargs=model_kwargs,
+                                               key=sample_rng_do, eta=0.2)
 
     latent = latent / 0.18215
     image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
@@ -291,7 +257,7 @@ def test_convert(args):
     #         print(device, device.coords, type(device.coords))
 
     model, converted_jax_params = create_state()
-    diffusion_sample = create_diffusion_sample(model=model, apply_fn=model.forward_with_cfg)
+    diffusion_sample = create_diffusion_sample(model=model, apply_fn=model.forward_with_cfg if args.cfg!=1 else model.__call__)
 
     converted_jax_params = jax.tree_util.tree_map(jnp.asarray, converted_jax_params)
 
@@ -309,10 +275,14 @@ def test_convert(args):
         print(vae_params['decoder']['conv_in']['bias'].devices())
         print(type(converted_jax_params), type(vae_params))
 
-    # vae_params = FrozenDict(vae_params)
+
+
+    sample_func=test_sharding if args.cfg!=1 else condition_sample
+    print(sample_func)
+
 
     test_sharding_jit = shard_map(
-        functools.partial(test_sharding, shape=shape, diffusion_sample=diffusion_sample,
+        functools.partial(sample_func, shape=shape, diffusion_sample=diffusion_sample,
                           vae=vae, cfg_scale=args.cfg),
         mesh=mesh,
         in_specs=(PartitionSpec('data'), PartitionSpec('data'),
@@ -450,10 +420,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # parser.add_argument("--output-dir", default="shard_path2")
     # parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.75")
-    parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.25-eta0.2")
+    parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.0-eta0.2")
     parser.add_argument("--seed", type=int, default=4)
     parser.add_argument("--sample-seed", type=int, default=2036)
-    parser.add_argument("--cfg", type=float, default=1.25)
+    parser.add_argument("--cfg", type=float, default=1.0)
     parser.add_argument("--data-per-shard", type=int, default=2048)  #2048
     parser.add_argument("--per-process-shards", type=int, default=250)
     parser.add_argument("--per-device-batch", type=int, default=128)  #128
