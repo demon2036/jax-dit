@@ -296,11 +296,7 @@ class GaussianDiffusion:
 
         prev_timestep_indices = np.append(indices[1:], 0)
 
-        # print(indices)
-        # print()
-        # print(prev_timestep_indices)
-        # print()
-        # print(prev_timestep_indices[:-1] - indices[1:])
+
 
         def loop_body(step, args):
             img, indices, prev_timestep_indices, key = args
@@ -319,8 +315,7 @@ class GaussianDiffusion:
             img = out['sample']
             return img, indices, prev_timestep_indices, key
 
-        img, indices, prev_timestep_indices, key = jax.lax.fori_loop(0, self.sample_steps, loop_body, init_val=(
-        img, indices, prev_timestep_indices, key))
+        img, indices, prev_timestep_indices, key = jax.lax.fori_loop(0, self.sample_steps, loop_body, init_val=(img, indices, prev_timestep_indices, key))
 
         return img
 

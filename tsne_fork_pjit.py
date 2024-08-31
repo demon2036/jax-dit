@@ -269,16 +269,12 @@ def test_convert(args):
     #     pass
 
     vae_params = jax.tree_util.tree_map(lambda x: jnp.asarray(np.array(x)), vae_params)
-
-    if jax.process_index() == 0:
-        print(converted_jax_params['x_embedder']['proj']['kernel'].devices())
-        print(vae_params['decoder']['conv_in']['bias'].devices())
-        print(type(converted_jax_params), type(vae_params))
-
-
-
     sample_func=test_sharding if args.cfg!=1 else condition_sample
-    print(sample_func)
+    if jax.process_index() == 0:
+        # print(converted_jax_params['x_embedder']['proj']['kernel'].devices())
+        # print(vae_params['decoder']['conv_in']['bias'].devices())
+        # print(type(converted_jax_params), type(vae_params))
+        print(sample_func)
 
 
     test_sharding_jit = shard_map(
@@ -347,40 +343,14 @@ def test_convert(args):
         for i in tqdm.tqdm(range(iter_per_shard), disable=not jax.process_index() == 0):
             rng, sample_rng, images, class_labels = test_sharding_jit(rng, sample_rng, converted_jax_params, vae_params,
                                                                       label)
-            """
-            batch_size, *_ = images.shape
-            per_process_batch = batch_size // jax.process_count()
-            process_idx = jax.process_index()
-            local_rng = rng[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
-            local_images = images[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
-            local_class_labels = class_labels[per_process_batch * process_idx: per_process_batch * (process_idx + 1)]
-            # jnp.array().devices()
 
-
-            # print(local_images.devices(),)
-
-            print(global_array_to_host_local_array(images,mesh,PartitionSpec(None)).shape)
-            local_images = jax.device_get(local_images * 255)
-            """
             local_images = collect_process_data(images)
             local_class_labels = collect_process_data(class_labels)
-
-            # if jax.process_index() == 0:
-            #     print(local_images.shape, images.shape)
-            # print(local_rng)
-            # print(local_rng.shape)
-            # print(test_sharding_jit._cache_size())
-            # save_image_torch(images, i)
-            # print(i, iter_per_shard)
-
             threading.Thread(target=thread_write,
                              args=(
                                  local_images, local_class_labels, sink, label,
                                  True if i == iter_per_shard - 1 else False)).start()
         send_file(3, args.output_dir, rng, sample_rng, label, checkpointer)
-        # threading.Thread(target=send_file,args=(0,args.output_dir,rng,sample_rng,label,checkpointer)).start()
-
-        # send_file(remote_path=args.output_dir,rng=rng,sample_rng=sample_rng,label=label)
 
     while threading.active_count() > 2:
         print(f'{threading.active_count()=}')
@@ -421,7 +391,7 @@ if __name__ == "__main__":
     # parser.add_argument("--output-dir", default="shard_path2")
     # parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.75")
     parser.add_argument("--output-dir", default="gs://brid-center-2b/imagenet-generated-100steps-cfg1.0-eta0.0")
-    parser.add_argument("--seed", type=int, default=4)
+    parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--sample-seed", type=int, default=2036)
     parser.add_argument("--cfg", type=float, default=1.0)
     parser.add_argument("--data-per-shard", type=int, default=8192)  #2048
