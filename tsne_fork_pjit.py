@@ -134,7 +134,7 @@ def condition_sample(rng, sample_rng, params, vae_params, class_label: int, diff
     y = jnp.array(class_labels)
     model_kwargs = dict(y=y,)
     latent = diffusion_sample.ddim_sample_loop(params, z.shape, z, clip_denoised=False, model_kwargs=model_kwargs,
-                                               key=sample_rng_do, eta=0.2)
+                                               key=sample_rng_do, eta=0.0)
 
     latent = latent / 0.18215
     image = vae.apply({'params': vae_params}, latent, method=vae.decode).sample
@@ -377,7 +377,7 @@ def test_convert(args):
                              args=(
                                  local_images, local_class_labels, sink, label,
                                  True if i == iter_per_shard - 1 else False)).start()
-        send_file(5, args.output_dir, rng, sample_rng, label, checkpointer)
+        send_file(3, args.output_dir, rng, sample_rng, label, checkpointer)
         # threading.Thread(target=send_file,args=(0,args.output_dir,rng,sample_rng,label,checkpointer)).start()
 
         # send_file(remote_path=args.output_dir,rng=rng,sample_rng=sample_rng,label=label)
@@ -420,12 +420,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # parser.add_argument("--output-dir", default="shard_path2")
     # parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.75")
-    parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.0-eta0.2")
+    parser.add_argument("--output-dir", default="gs://brid-center-2b/imagenet-generated-100steps-cfg1.0-eta0.0")
     parser.add_argument("--seed", type=int, default=4)
     parser.add_argument("--sample-seed", type=int, default=2036)
     parser.add_argument("--cfg", type=float, default=1.0)
-    parser.add_argument("--data-per-shard", type=int, default=2048)  #2048
-    parser.add_argument("--per-process-shards", type=int, default=250)
+    parser.add_argument("--data-per-shard", type=int, default=8192)  #2048
+    parser.add_argument("--per-process-shards", type=int, default=400)
     parser.add_argument("--per-device-batch", type=int, default=128)  #128
     parser.add_argument("--resume",  action="store_true", default=False)
     test_convert(parser.parse_args())
