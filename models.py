@@ -351,6 +351,9 @@ class DiT(DiTBase, nn.Module):
         x = self.unpatchify(x)
         return x
 
+    # y=1 y_null 0-999 1000
+    #model([y,y_null]) -> x1 x2       x2 + cfg *(x1-x2)
+
     def forward_with_cfg(self, x, t, y, cfg_scale):
         half = x[:len(x) // 2]
         combined = jnp.concat([half, half], axis=0)

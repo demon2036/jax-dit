@@ -8,6 +8,8 @@ import jax.numpy as jnp
 import numpy as np
 
 
+
+
 def convert_to_global_array(x, x_sharding):
     b, *res = x.shape
     # x = np.array(x)

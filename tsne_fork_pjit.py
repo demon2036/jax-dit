@@ -83,6 +83,9 @@ def send_file(keep_files=2, remote_path='shard_path2', rng=None, sample_rng=None
                 checkpointer.save(f'{dst}/resume.json', ckpt, save_args=save_args, force=True)
 
 
+
+
+
 def test_sharding(rng, sample_rng, params, vae_params, class_label: int, diffusion_sample, vae, shape,
                   cfg_scale: float = 1.5):
     new_rng, local_rng, class_rng = jax.random.split(rng[0], 3)
@@ -390,10 +393,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # parser.add_argument("--output-dir", default="shard_path2")
     # parser.add_argument("--output-dir", default="gs://shadow-center-2b/imagenet-generated-100steps-cfg1.75")
-    parser.add_argument("--output-dir", default="gs://brid-center-2b/imagenet-generated-100steps-cfg1.5-eta0.0")
+    # parser.add_argument("--output-dir", default="gs://brid-center-2b/imagenet-generated-100steps-cfg1.0-eta0.0")
+    parser.add_argument("--output-dir", default="gs://arm-central-2b/imagenet-generated-100steps-cfg3.0-eta0.0")
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--sample-seed", type=int, default=24)
-    parser.add_argument("--cfg", type=float, default=1.5)
+    parser.add_argument("--cfg", type=float, default=3.0)
     parser.add_argument("--data-per-shard", type=int, default=8192)  #2048
     parser.add_argument("--per-process-shards", type=int, default=400)
     parser.add_argument("--per-device-batch", type=int, default=128)  #128
