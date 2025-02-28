@@ -130,7 +130,7 @@ def condition_sample(rng, sample_rng, params, vae_params, class_label: int, diff
     new_sample_rng, sample_rng_do = jax.random.split(sample_rng[0], 2)
     # class_labels = jnp.ones((shape[0],), dtype=jnp.int32) * class_label
 
-    class_labels = jax.random.randint(class_rng, (shape[0],), 0, 999)
+    class_labels = jax.random.randint(class_rng, (shape[0],), 0, 1000)
     print(rng, sample_rng)
 
     z = jax.random.normal(key=local_rng, shape=shape)
