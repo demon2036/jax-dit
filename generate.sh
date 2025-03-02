@@ -12,7 +12,7 @@ for script in "${SCRIPT_PATHS[@]}"; do
 #    python -u test.py
 
 #    python -u test_orbax.py
-    python -u tsne_fork_pjit.py
+    python -u tsne_fork_pjit.py --resume
 
 
 #    python -u main.py --yaml-path $script

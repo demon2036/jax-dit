@@ -233,7 +233,7 @@ def test_convert(args):
         ckpt = {
             'rng': rng,
             'sample_rng': sample_rng,
-            'label': 1
+            'resume': 1
         }
         ckpt = checkpointer.restore(dst, item=ckpt)
         rng = ckpt['rng']
